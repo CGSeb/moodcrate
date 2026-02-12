@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+src-tauri/target/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# App data (user content)
+*.db
+user-data/
+
+# Claude Code
+.claude/
+
+# Environment
+.env
+.env.local
