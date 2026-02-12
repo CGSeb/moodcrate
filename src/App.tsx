@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Trash2 } from "lucide-react";
 import Sidebar, { Collection } from "./components/Sidebar/Sidebar";
+import CollectionView from "./components/CollectionView/CollectionView";
 import ConfirmDialog from "./components/ConfirmDialog/ConfirmDialog";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import "./App.css";
@@ -27,18 +27,10 @@ function App() {
       />
       <main className="main-content">
         {selectedCollection ? (
-          <>
-            <div className="main-content__header">
-              <h1>{selectedCollection.name}</h1>
-              <button
-                className="main-content__delete-btn"
-                onClick={() => setShowDeleteConfirm(true)}
-                aria-label="Delete collection"
-              >
-                <Trash2 size={18} />
-              </button>
-            </div>
-          </>
+          <CollectionView
+            collection={selectedCollection}
+            onDelete={() => setShowDeleteConfirm(true)}
+          />
         ) : (
           <h1>Moodcrate</h1>
         )}

@@ -1,0 +1,19 @@
+.collection-view__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.collection-view__delete-btn {
+  all: unset;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 6px;
+  border-radius: 6px;
+  color: #d94444;
+}
+
+.collection-view__delete-btn:hover {
+  background: rgba(217, 68, 68, 0.15);
+}
