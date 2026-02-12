@@ -11,18 +11,29 @@ import { open } from "@tauri-apps/plugin-dialog";
 import NameDialog from "../NameDialog/NameDialog";
 import "./Sidebar.css";
 
-interface Collection {
+export interface Collection {
   name: string;
   path: string;
 }
 
-export default function Sidebar() {
+interface SidebarProps {
+  collections: Collection[];
+  onAddCollection: (collection: Collection) => void;
+  selectedCollection: Collection | null;
+  onSelectCollection: (collection: Collection) => void;
+}
+
+export default function Sidebar({
+  collections,
+  onAddCollection,
+  selectedCollection,
+  onSelectCollection,
+}: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     Collections: true,
     Moodboards: true,
   });
-  const [collections, setCollections] = useState<Collection[]>([]);
   const [pendingPath, setPendingPath] = useState<string | null>(null);
 
   function toggleSection(label: string) {
@@ -40,7 +51,7 @@ export default function Sidebar() {
 
   function handleConfirmName(name: string) {
     if (!pendingPath) return;
-    setCollections((prev) => [...prev, { name, path: pendingPath }]);
+    onAddCollection({ name, path: pendingPath });
     setPendingPath(null);
   }
 
@@ -91,7 +102,11 @@ export default function Sidebar() {
                     <li className="sidebar__empty">No collections yet</li>
                   ) : (
                     collections.map((col) => (
-                      <li className="sidebar__item" key={col.path}>
+                      <li
+                        className={`sidebar__item ${selectedCollection?.path === col.path ? "sidebar__item--active" : ""}`}
+                        key={col.path}
+                        onClick={() => onSelectCollection(col)}
+                      >
                         {col.name}
                       </li>
                     ))

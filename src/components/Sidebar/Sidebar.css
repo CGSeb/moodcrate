@@ -91,6 +91,11 @@
   color: #fff;
 }
 
+.sidebar__item--active {
+  background-color: #333;
+  color: #fff;
+}
+
 .sidebar__section-label {
   flex: 1;
 }
