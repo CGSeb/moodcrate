@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
-import { Trash2 } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Trash2, ImagePlus } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 import type { Collection } from "../Sidebar/Sidebar";
-import type { Tag } from "../../App";
+import type { Tag, Moodboard } from "../../App";
 import ConfirmDialog from "../ConfirmDialog/ConfirmDialog";
 import ImageViewer from "../ImageViewer/ImageViewer";
 import TagSidebar from "../TagSidebar/TagSidebar";
@@ -22,6 +22,8 @@ interface CollectionViewProps {
   onDeleteTag: (tagId: string) => void;
   onAddTagToImage: (imagePath: string, tagId: string) => void;
   onRemoveTagFromImage: (imagePath: string, tagId: string) => void;
+  moodboards: Moodboard[];
+  onAddImageToMoodboard: (moodboardId: string, imagePath: string) => void;
 }
 
 export default function CollectionView({
@@ -33,6 +35,8 @@ export default function CollectionView({
   onDeleteTag,
   onAddTagToImage,
   onRemoveTagFromImage,
+  moodboards,
+  onAddImageToMoodboard,
 }: CollectionViewProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [images, setImages] = useState<ImageEntry[]>([]);
@@ -40,6 +44,8 @@ export default function CollectionView({
   const [viewerSrc, setViewerSrc] = useState<string | null>(null);
   const [dragOverPath, setDragOverPath] = useState<string | null>(null);
   const [filterTagIds, setFilterTagIds] = useState<Set<string>>(new Set());
+  const [moodboardPickerPath, setMoodboardPickerPath] = useState<string | null>(null);
+  const pickerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -66,6 +72,18 @@ export default function CollectionView({
     loadImages();
     return () => { cancelled = true; };
   }, [collection.path]);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
+        setMoodboardPickerPath(null);
+      }
+    }
+    if (moodboardPickerPath) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [moodboardPickerPath]);
 
   useEffect(() => {
     const validIds = new Set(tags.map((t) => t.id));
@@ -176,6 +194,39 @@ export default function CollectionView({
                     <img src={img.dataUrl} alt="" className="collection-view__img" />
                   ) : (
                     <div className="collection-view__placeholder" />
+                  )}
+                  {moodboards.length > 0 && (
+                    <div className="collection-view__add-to-mb">
+                      <span
+                        className="collection-view__add-to-mb-btn"
+                        role="button"
+                        tabIndex={0}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setMoodboardPickerPath(moodboardPickerPath === img.path ? null : img.path);
+                        }}
+                        title="Add to moodboard"
+                      >
+                        <ImagePlus size={16} />
+                      </span>
+                      {moodboardPickerPath === img.path && (
+                        <div className="collection-view__mb-picker" ref={pickerRef}>
+                          {moodboards.map((mb) => (
+                            <button
+                              key={mb.id}
+                              className="collection-view__mb-picker-item"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onAddImageToMoodboard(mb.id, img.path);
+                                setMoodboardPickerPath(null);
+                              }}
+                            >
+                              {mb.name}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   )}
                   {imgTags.length > 0 && (
                     <div className="collection-view__tags">

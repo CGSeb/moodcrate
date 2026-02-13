@@ -137,3 +137,62 @@
   background: rgba(0, 0, 0, 0.7);
   color: #999;
 }
+
+.collection-view__add-to-mb {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 3;
+}
+
+.collection-view__add-to-mb-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #ccc;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.collection-view__tile:hover .collection-view__add-to-mb-btn {
+  opacity: 1;
+}
+
+.collection-view__add-to-mb-btn:hover {
+  background: rgba(90, 125, 232, 0.8);
+  color: #fff;
+}
+
+.collection-view__mb-picker {
+  position: absolute;
+  top: 32px;
+  right: 0;
+  min-width: 140px;
+  background: #1e1e1e;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.collection-view__mb-picker-item {
+  all: unset;
+  cursor: pointer;
+  padding: 6px 10px;
+  font-size: 13px;
+  color: #ccc;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.collection-view__mb-picker-item:hover {
+  background: #2a2a2a;
+  color: #fff;
+}
