@@ -118,3 +118,21 @@
   background: rgba(217, 68, 68, 0.8);
   color: #fff;
 }
+
+.moodboard-view__item-resize {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 14px;
+  height: 14px;
+  cursor: nwse-resize;
+  opacity: 0;
+  transition: opacity 0.15s;
+  background:
+    linear-gradient(135deg, transparent 50%, rgba(255, 255, 255, 0.5) 50%);
+  border-radius: 0 0 6px 0;
+}
+
+.moodboard-view__item:hover .moodboard-view__item-resize {
+  opacity: 1;
+}

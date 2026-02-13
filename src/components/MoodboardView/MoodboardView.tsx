@@ -10,7 +10,7 @@ interface MoodboardViewProps {
   images: MoodboardImage[];
   onDelete: () => void;
   onRemoveImage: (imageId: string) => void;
-  onUpdateImage: (imageId: string, updates: Partial<Pick<MoodboardImage, "x" | "y">>) => void;
+  onUpdateImage: (imageId: string, updates: Partial<Pick<MoodboardImage, "x" | "y" | "width">>) => void;
 }
 
 interface LoadedImage {
@@ -32,6 +32,7 @@ export default function MoodboardView({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [loadedImages, setLoadedImages] = useState<LoadedImage[]>([]);
   const [dragging, setDragging] = useState<{ id: string; startX: number; startY: number; imgStartX: number; imgStartY: number } | null>(null);
+  const [resizing, setResizing] = useState<{ id: string; startX: number; startWidth: number } | null>(null);
   const [panning, setPanning] = useState<{ startX: number; startY: number; panStartX: number; panStartY: number } | null>(null);
   const [panX, setPanX] = useState(0);
   const [panY, setPanY] = useState(0);
@@ -84,6 +85,15 @@ export default function MoodboardView({
     });
   }
 
+  function handleResizeMouseDown(e: React.MouseEvent, imgId: string) {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const img = images.find((i) => i.id === imgId);
+    if (!img) return;
+    setResizing({ id: imgId, startX: e.clientX, startWidth: img.width });
+  }
+
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (dragging) {
       const dx = (e.clientX - dragging.startX) / zoom;
@@ -93,26 +103,32 @@ export default function MoodboardView({
         y: dragging.imgStartY + dy,
       });
     }
+    if (resizing) {
+      const dx = (e.clientX - resizing.startX) / zoom;
+      const newWidth = Math.max(50, resizing.startWidth + dx);
+      onUpdateImage(resizing.id, { width: newWidth });
+    }
     if (panning) {
       setPanX(panning.panStartX + (e.clientX - panning.startX));
       setPanY(panning.panStartY + (e.clientY - panning.startY));
     }
-  }, [dragging, panning, zoom, onUpdateImage]);
+  }, [dragging, resizing, panning, zoom, onUpdateImage]);
 
   const handleMouseUp = useCallback((e: MouseEvent) => {
     if (dragging && e.button === 0) setDragging(null);
+    if (resizing && e.button === 0) setResizing(null);
     if (panning && e.button === 1) setPanning(null);
-  }, [dragging, panning]);
+  }, [dragging, resizing, panning]);
 
   useEffect(() => {
-    if (!dragging && !panning) return;
+    if (!dragging && !resizing && !panning) return;
     window.addEventListener("mousemove", handleMouseMove);
     window.addEventListener("mouseup", handleMouseUp);
     return () => {
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
     };
-  }, [dragging, panning, handleMouseMove, handleMouseUp]);
+  }, [dragging, resizing, panning, handleMouseMove, handleMouseUp]);
 
   // --- Canvas panning (middle mouse button) ---
   function handleCanvasMouseDown(e: React.MouseEvent) {
@@ -217,6 +233,10 @@ export default function MoodboardView({
                 >
                   <X size={14} />
                 </button>
+                <div
+                  className="moodboard-view__item-resize"
+                  onMouseDown={(e) => handleResizeMouseDown(e, img.id)}
+                />
               </div>
             );
           })}

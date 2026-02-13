@@ -165,7 +165,7 @@ export default function CollectionView({
   return (
     <div className="collection-view">
       <div className="collection-view__header">
-        <h1>{collection.name}</h1>
+        <h1>{collection.name} <span className="collection-view__count">({filteredImages.length})</span></h1>
         <button
           className="collection-view__delete-btn"
           onClick={() => setShowDeleteConfirm(true)}
