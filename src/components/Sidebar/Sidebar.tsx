@@ -9,6 +9,7 @@ import {
   Plus,
 } from "lucide-react";
 import { open } from "@tauri-apps/plugin-dialog";
+import type { Moodboard } from "../../App";
 import NameDialog from "../NameDialog/NameDialog";
 import "./Sidebar.css";
 
@@ -22,6 +23,10 @@ interface SidebarProps {
   onAddCollection: (collection: Collection) => void;
   selectedCollection: Collection | null;
   onSelectCollection: (collection: Collection) => void;
+  moodboards: Moodboard[];
+  onAddMoodboard: (name: string) => void;
+  selectedMoodboard: Moodboard | null;
+  onSelectMoodboard: (moodboard: Moodboard) => void;
   onHome: () => void;
 }
 
@@ -30,6 +35,10 @@ export default function Sidebar({
   onAddCollection,
   selectedCollection,
   onSelectCollection,
+  moodboards,
+  onAddMoodboard,
+  selectedMoodboard,
+  onSelectMoodboard,
   onHome,
 }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
@@ -38,6 +47,7 @@ export default function Sidebar({
     Moodboards: true,
   });
   const [pendingPath, setPendingPath] = useState<string | null>(null);
+  const [showMoodboardDialog, setShowMoodboardDialog] = useState(false);
 
   function toggleSection(label: string) {
     setOpenSections((prev) => ({ ...prev, [label]: !prev[label] }));
@@ -121,7 +131,19 @@ export default function Sidebar({
               </div>
               <div className="sidebar__flyout">
                 <div className="sidebar__flyout-header">Moodboards</div>
-                <div className="sidebar__flyout-empty">No moodboards yet</div>
+                {moodboards.length === 0 ? (
+                  <div className="sidebar__flyout-empty">No moodboards yet</div>
+                ) : (
+                  moodboards.map((mb) => (
+                    <div
+                      key={mb.id}
+                      className={`sidebar__flyout-item ${selectedMoodboard?.id === mb.id ? "sidebar__flyout-item--active" : ""}`}
+                      onClick={() => onSelectMoodboard(mb)}
+                    >
+                      {mb.name}
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </nav>
@@ -182,12 +204,36 @@ export default function Sidebar({
                   className={`sidebar__chevron ${openSections["Moodboards"] ? "sidebar__chevron--open" : ""}`}
                 />
                 <Layout size={16} />
-                Moodboards
+                <span className="sidebar__section-label">Moodboards</span>
+                <span
+                  className="sidebar__add-btn"
+                  role="button"
+                  tabIndex={0}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowMoodboardDialog(true);
+                  }}
+                  aria-label="Add moodboard"
+                >
+                  <Plus size={15} />
+                </span>
               </button>
 
               {openSections["Moodboards"] && (
                 <ul className="sidebar__list">
-                  <li className="sidebar__empty">No moodboards yet</li>
+                  {moodboards.length === 0 ? (
+                    <li className="sidebar__empty">No moodboards yet</li>
+                  ) : (
+                    moodboards.map((mb) => (
+                      <li
+                        className={`sidebar__item ${selectedMoodboard?.id === mb.id ? "sidebar__item--active" : ""}`}
+                        key={mb.id}
+                        onClick={() => onSelectMoodboard(mb)}
+                      >
+                        {mb.name}
+                      </li>
+                    ))
+                  )}
                 </ul>
               )}
             </div>
@@ -201,6 +247,17 @@ export default function Sidebar({
         placeholder="Collection name…"
         onConfirm={handleConfirmName}
         onCancel={() => setPendingPath(null)}
+      />
+
+      <NameDialog
+        open={showMoodboardDialog}
+        title="New Moodboard"
+        placeholder="Moodboard name…"
+        onConfirm={(name) => {
+          setShowMoodboardDialog(false);
+          onAddMoodboard(name);
+        }}
+        onCancel={() => setShowMoodboardDialog(false)}
       />
     </>
   );

@@ -2,6 +2,7 @@ import { useState } from "react";
 import Titlebar from "./components/Titlebar/Titlebar";
 import Sidebar, { Collection } from "./components/Sidebar/Sidebar";
 import CollectionView from "./components/CollectionView/CollectionView";
+import MoodboardView from "./components/MoodboardView/MoodboardView";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import "./App.css";
 
@@ -10,9 +11,16 @@ export interface Tag {
   name: string;
 }
 
+export interface Moodboard {
+  id: string;
+  name: string;
+}
+
 function App() {
   const [collections, setCollections] = useLocalStorage<Collection[]>("collections", []);
   const [selectedCollection, setSelectedCollection] = useState<Collection | null>(null);
+  const [moodboards, setMoodboards] = useLocalStorage<Moodboard[]>("moodboards", []);
+  const [selectedMoodboard, setSelectedMoodboard] = useState<Moodboard | null>(null);
   const [tags, setTags] = useLocalStorage<Tag[]>("tags", []);
   const [imageTags, setImageTags] = useLocalStorage<Record<string, string[]>>("imageTags", {});
 
@@ -20,6 +28,19 @@ function App() {
     if (!selectedCollection) return;
     setCollections((prev) => prev.filter((c) => c.path !== selectedCollection.path));
     setSelectedCollection(null);
+  }
+
+  function handleAddMoodboard(name: string) {
+    const mb: Moodboard = { id: crypto.randomUUID(), name };
+    setMoodboards((prev) => [...prev, mb]);
+    setSelectedMoodboard(mb);
+    setSelectedCollection(null);
+  }
+
+  function handleDeleteMoodboard() {
+    if (!selectedMoodboard) return;
+    setMoodboards((prev) => prev.filter((m) => m.id !== selectedMoodboard.id));
+    setSelectedMoodboard(null);
   }
 
   function handleAddTag(name: string) {
@@ -68,10 +89,24 @@ function App() {
           onAddCollection={(col) => {
             setCollections((prev) => [...prev, col]);
             setSelectedCollection(col);
+            setSelectedMoodboard(null);
           }}
           selectedCollection={selectedCollection}
-          onSelectCollection={setSelectedCollection}
-          onHome={() => setSelectedCollection(null)}
+          onSelectCollection={(col) => {
+            setSelectedCollection(col);
+            setSelectedMoodboard(null);
+          }}
+          moodboards={moodboards}
+          onAddMoodboard={handleAddMoodboard}
+          selectedMoodboard={selectedMoodboard}
+          onSelectMoodboard={(mb) => {
+            setSelectedMoodboard(mb);
+            setSelectedCollection(null);
+          }}
+          onHome={() => {
+            setSelectedCollection(null);
+            setSelectedMoodboard(null);
+          }}
         />
         <main className="main-content">
           {selectedCollection ? (
@@ -84,6 +119,11 @@ function App() {
               onDeleteTag={handleDeleteTag}
               onAddTagToImage={handleAddTagToImage}
               onRemoveTagFromImage={handleRemoveTagFromImage}
+            />
+          ) : selectedMoodboard ? (
+            <MoodboardView
+              moodboard={selectedMoodboard}
+              onDelete={handleDeleteMoodboard}
             />
           ) : (
             <h1>Moodcrate</h1>
