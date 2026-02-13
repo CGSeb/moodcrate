@@ -3,7 +3,7 @@
   flex-direction: column;
   width: 240px;
   min-width: 240px;
-  height: 100vh;
+  height: 100%;
   background-color: #1e1e1e;
   border-right: 1px solid #333;
   transition: width 0.2s ease, min-width 0.2s ease;
@@ -21,14 +21,39 @@
   overflow: visible;
 }
 
+.sidebar__topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #333;
+}
+
+.sidebar--collapsed .sidebar__topbar {
+  flex-direction: column;
+}
+
+.sidebar__home-btn {
+  all: unset;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 12px;
+  color: #999;
+}
+
+.sidebar__home-btn:hover {
+  color: #fff;
+}
+
 .sidebar__toggle {
   all: unset;
   cursor: pointer;
-  padding: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 12px;
   color: #999;
-  font-size: 12px;
-  text-align: right;
-  border-bottom: 1px solid #333;
 }
 
 .sidebar__toggle:hover {
