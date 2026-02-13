@@ -2,8 +2,10 @@ import { useState, useEffect } from "react";
 import { Trash2 } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 import type { Collection } from "../Sidebar/Sidebar";
+import type { Tag } from "../../App";
 import ConfirmDialog from "../ConfirmDialog/ConfirmDialog";
 import ImageViewer from "../ImageViewer/ImageViewer";
+import TagSidebar from "../TagSidebar/TagSidebar";
 import "./CollectionView.css";
 
 interface ImageEntry {
@@ -14,13 +16,30 @@ interface ImageEntry {
 interface CollectionViewProps {
   collection: Collection;
   onDelete: () => void;
+  tags: Tag[];
+  imageTags: Record<string, string[]>;
+  onAddTag: (name: string) => void;
+  onDeleteTag: (tagId: string) => void;
+  onAddTagToImage: (imagePath: string, tagId: string) => void;
+  onRemoveTagFromImage: (imagePath: string, tagId: string) => void;
 }
 
-export default function CollectionView({ collection, onDelete }: CollectionViewProps) {
+export default function CollectionView({
+  collection,
+  onDelete,
+  tags,
+  imageTags,
+  onAddTag,
+  onDeleteTag,
+  onAddTagToImage,
+  onRemoveTagFromImage,
+}: CollectionViewProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [images, setImages] = useState<ImageEntry[]>([]);
   const [viewerPath, setViewerPath] = useState<string | null>(null);
   const [viewerSrc, setViewerSrc] = useState<string | null>(null);
+  const [dragOverPath, setDragOverPath] = useState<string | null>(null);
+  const [filterTagIds, setFilterTagIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     let cancelled = false;
@@ -33,7 +52,6 @@ export default function CollectionView({ collection, onDelete }: CollectionViewP
         const entries: ImageEntry[] = paths.map((p) => ({ path: p, dataUrl: null }));
         setImages(entries);
 
-        // Load each image in parallel
         const results = await Promise.all(
           paths.map((p) => invoke<string>("read_image", { path: p }).catch(() => null))
         );
@@ -49,9 +67,17 @@ export default function CollectionView({ collection, onDelete }: CollectionViewP
     return () => { cancelled = true; };
   }, [collection.path]);
 
+  useEffect(() => {
+    const validIds = new Set(tags.map((t) => t.id));
+    setFilterTagIds((prev) => {
+      const next = new Set(Array.from(prev).filter((id) => validIds.has(id)));
+      if (next.size === prev.size) return prev;
+      return next;
+    });
+  }, [tags]);
+
   async function handleOpenViewer(path: string) {
     setViewerPath(path);
-    // Check if we already have it cached
     const cached = images.find((img) => img.path === path);
     if (cached?.dataUrl) {
       setViewerSrc(cached.dataUrl);
@@ -75,6 +101,49 @@ export default function CollectionView({ collection, onDelete }: CollectionViewP
     onDelete();
   }
 
+  function handleDragOver(e: React.DragEvent, path: string) {
+    if (e.dataTransfer.types.includes("application/tag-id")) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "copy";
+      setDragOverPath(path);
+    }
+  }
+
+  function handleDragLeave(e: React.DragEvent, path: string) {
+    const related = e.relatedTarget as Node | null;
+    const current = e.currentTarget as Node;
+    if (related && current.contains(related)) return;
+    if (dragOverPath === path) setDragOverPath(null);
+  }
+
+  function handleDrop(e: React.DragEvent, imagePath: string) {
+    e.preventDefault();
+    setDragOverPath(null);
+    const tagId = e.dataTransfer.getData("application/tag-id");
+    if (tagId) onAddTagToImage(imagePath, tagId);
+  }
+
+  function handleToggleFilter(tagId: string) {
+    setFilterTagIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(tagId)) next.delete(tagId);
+      else next.add(tagId);
+      return next;
+    });
+  }
+
+  function getImageTags(path: string): Tag[] {
+    const ids = imageTags[path] || [];
+    return tags.filter((t) => ids.includes(t.id));
+  }
+
+  const filteredImages = filterTagIds.size === 0
+    ? images
+    : images.filter((img) => {
+        const ids = imageTags[img.path] || [];
+        return Array.from(filterTagIds).some((fid) => ids.includes(fid));
+      });
+
   return (
     <div className="collection-view">
       <div className="collection-view__header">
@@ -88,20 +157,61 @@ export default function CollectionView({ collection, onDelete }: CollectionViewP
         </button>
       </div>
 
-      <div className="collection-view__grid">
-        {images.map((img) => (
-          <button
-            key={img.path}
-            className="collection-view__tile"
-            onClick={() => handleOpenViewer(img.path)}
-          >
-            {img.dataUrl ? (
-              <img src={img.dataUrl} alt="" className="collection-view__img" />
-            ) : (
-              <div className="collection-view__placeholder" />
-            )}
-          </button>
-        ))}
+      <div className="collection-view__body">
+        <div className="collection-view__grid-area">
+          <div className="collection-view__grid">
+            {filteredImages.map((img) => {
+              const imgTags = getImageTags(img.path);
+              const isDragOver = dragOverPath === img.path;
+              return (
+                <button
+                  key={img.path}
+                  className={`collection-view__tile ${isDragOver ? "collection-view__tile--drag-over" : ""}`}
+                  onClick={() => handleOpenViewer(img.path)}
+                  onDragOver={(e) => handleDragOver(e, img.path)}
+                  onDragLeave={(e) => handleDragLeave(e, img.path)}
+                  onDrop={(e) => handleDrop(e, img.path)}
+                >
+                  {img.dataUrl ? (
+                    <img src={img.dataUrl} alt="" className="collection-view__img" />
+                  ) : (
+                    <div className="collection-view__placeholder" />
+                  )}
+                  {imgTags.length > 0 && (
+                    <div className="collection-view__tags">
+                      {imgTags.slice(0, 3).map((tag) => (
+                        <span
+                          key={tag.id}
+                          className="collection-view__tag-badge"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onRemoveTagFromImage(img.path, tag.id);
+                          }}
+                          title={`Remove "${tag.name}"`}
+                        >
+                          {tag.name}
+                        </span>
+                      ))}
+                      {imgTags.length > 3 && (
+                        <span className="collection-view__tag-badge collection-view__tag-badge--more">
+                          +{imgTags.length - 3}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <TagSidebar
+          tags={tags}
+          filterTagIds={filterTagIds}
+          onToggleFilter={handleToggleFilter}
+          onAddTag={onAddTag}
+          onDeleteTag={onDeleteTag}
+        />
       </div>
 
       {viewerPath && viewerSrc && (
