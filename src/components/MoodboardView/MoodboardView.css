@@ -1,0 +1,42 @@
+.moodboard-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.moodboard-view__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.moodboard-view__delete-btn {
+  all: unset;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 6px;
+  border-radius: 6px;
+  color: #d94444;
+}
+
+.moodboard-view__delete-btn:hover {
+  background: rgba(217, 68, 68, 0.15);
+}
+
+.moodboard-view__canvas {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed #333;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.moodboard-view__empty {
+  color: #555;
+  font-size: 14px;
+  font-style: italic;
+}
