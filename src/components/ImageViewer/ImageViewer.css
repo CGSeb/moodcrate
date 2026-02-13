@@ -1,0 +1,37 @@
+.image-viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.image-viewer__close {
+  all: unset;
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  cursor: pointer;
+  color: #999;
+  padding: 8px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  z-index: 201;
+}
+
+.image-viewer__close:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.image-viewer__img {
+  max-width: 90vw;
+  max-height: 90vh;
+  object-fit: contain;
+  cursor: default;
+  border-radius: 4px;
+}

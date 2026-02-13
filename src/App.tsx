@@ -18,7 +18,10 @@ function App() {
     <div className="app-layout">
       <Sidebar
         collections={collections}
-        onAddCollection={(col) => setCollections((prev) => [...prev, col])}
+        onAddCollection={(col) => {
+          setCollections((prev) => [...prev, col]);
+          setSelectedCollection(col);
+        }}
         selectedCollection={selectedCollection}
         onSelectCollection={setSelectedCollection}
       />
