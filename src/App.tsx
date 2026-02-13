@@ -91,7 +91,7 @@ function App() {
     });
   }
 
-  function handleUpdateMoodboardImage(moodboardId: string, imageId: string, updates: Partial<Pick<MoodboardImage, "x" | "y">>) {
+  function handleUpdateMoodboardImage(moodboardId: string, imageId: string, updates: Partial<Pick<MoodboardImage, "x" | "y" | "width">>) {
     setMoodboardImages((prev) => {
       const current = prev[moodboardId];
       if (!current) return prev;
@@ -189,7 +189,7 @@ function App() {
               images={moodboardImages[selectedMoodboard.id] || []}
               onDelete={handleDeleteMoodboard}
               onRemoveImage={(imageId: string) => handleRemoveImageFromMoodboard(selectedMoodboard.id, imageId)}
-              onUpdateImage={(imageId: string, updates: Partial<Pick<MoodboardImage, "x" | "y">>) => handleUpdateMoodboardImage(selectedMoodboard.id, imageId, updates)}
+              onUpdateImage={(imageId: string, updates: Partial<Pick<MoodboardImage, "x" | "y" | "width">>) => handleUpdateMoodboardImage(selectedMoodboard.id, imageId, updates)}
             />
           ) : (
             <h1>Moodcrate</h1>
