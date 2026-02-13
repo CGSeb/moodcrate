@@ -16,11 +16,21 @@ export interface Moodboard {
   name: string;
 }
 
+export interface MoodboardImage {
+  id: string;
+  path: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 function App() {
   const [collections, setCollections] = useLocalStorage<Collection[]>("collections", []);
   const [selectedCollection, setSelectedCollection] = useState<Collection | null>(null);
   const [moodboards, setMoodboards] = useLocalStorage<Moodboard[]>("moodboards", []);
   const [selectedMoodboard, setSelectedMoodboard] = useState<Moodboard | null>(null);
+  const [moodboardImages, setMoodboardImages] = useLocalStorage<Record<string, MoodboardImage[]>>("moodboardImages", {});
   const [tags, setTags] = useLocalStorage<Tag[]>("tags", []);
   const [imageTags, setImageTags] = useLocalStorage<Record<string, string[]>>("imageTags", {});
 
@@ -40,7 +50,58 @@ function App() {
   function handleDeleteMoodboard() {
     if (!selectedMoodboard) return;
     setMoodboards((prev) => prev.filter((m) => m.id !== selectedMoodboard.id));
+    setMoodboardImages((prev) => {
+      const next = { ...prev };
+      delete next[selectedMoodboard.id];
+      return next;
+    });
     setSelectedMoodboard(null);
+  }
+
+  function handleAddImageToMoodboard(moodboardId: string, imagePath: string) {
+    setMoodboardImages((prev) => {
+      const current = prev[moodboardId] || [];
+      if (current.some((img) => img.path === imagePath)) return prev;
+      const entry: MoodboardImage = {
+        id: crypto.randomUUID(),
+        path: imagePath,
+        x: 300,
+        y: 200,
+        width: 200,
+        height: 200,
+      };
+      return { ...prev, [moodboardId]: [...current, entry] };
+    });
+    const mb = moodboards.find((m) => m.id === moodboardId);
+    if (mb) {
+      setSelectedMoodboard(mb);
+      setSelectedCollection(null);
+    }
+  }
+
+  function handleRemoveImageFromMoodboard(moodboardId: string, imageId: string) {
+    setMoodboardImages((prev) => {
+      const current = prev[moodboardId] || [];
+      const filtered = current.filter((img) => img.id !== imageId);
+      if (filtered.length === current.length) return prev;
+      const next = { ...prev };
+      if (filtered.length > 0) next[moodboardId] = filtered;
+      else delete next[moodboardId];
+      return next;
+    });
+  }
+
+  function handleUpdateMoodboardImage(moodboardId: string, imageId: string, updates: Partial<Pick<MoodboardImage, "x" | "y">>) {
+    setMoodboardImages((prev) => {
+      const current = prev[moodboardId];
+      if (!current) return prev;
+      return {
+        ...prev,
+        [moodboardId]: current.map((img) =>
+          img.id === imageId ? { ...img, ...updates } : img
+        ),
+      };
+    });
   }
 
   function handleAddTag(name: string) {
@@ -119,11 +180,16 @@ function App() {
               onDeleteTag={handleDeleteTag}
               onAddTagToImage={handleAddTagToImage}
               onRemoveTagFromImage={handleRemoveTagFromImage}
+              moodboards={moodboards}
+              onAddImageToMoodboard={handleAddImageToMoodboard}
             />
           ) : selectedMoodboard ? (
             <MoodboardView
               moodboard={selectedMoodboard}
+              images={moodboardImages[selectedMoodboard.id] || []}
               onDelete={handleDeleteMoodboard}
+              onRemoveImage={(imageId: string) => handleRemoveImageFromMoodboard(selectedMoodboard.id, imageId)}
+              onUpdateImage={(imageId: string, updates: Partial<Pick<MoodboardImage, "x" | "y">>) => handleUpdateMoodboardImage(selectedMoodboard.id, imageId, updates)}
             />
           ) : (
             <h1>Moodcrate</h1>
