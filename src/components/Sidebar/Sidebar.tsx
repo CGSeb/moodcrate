@@ -70,7 +70,43 @@ export default function Sidebar({
           )}
         </button>
 
-        {!collapsed && (
+        {collapsed ? (
+          <nav className="sidebar__nav">
+            {/* Collapsed: Collections icon with flyout */}
+            <div className="sidebar__collapsed-section">
+              <div className="sidebar__collapsed-icon">
+                <FolderOpen size={18} />
+              </div>
+              <div className="sidebar__flyout">
+                <div className="sidebar__flyout-header">Collections</div>
+                {collections.length === 0 ? (
+                  <div className="sidebar__flyout-empty">No collections yet</div>
+                ) : (
+                  collections.map((col) => (
+                    <div
+                      key={col.path}
+                      className={`sidebar__flyout-item ${selectedCollection?.path === col.path ? "sidebar__flyout-item--active" : ""}`}
+                      onClick={() => onSelectCollection(col)}
+                    >
+                      {col.name}
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* Collapsed: Moodboards icon with flyout */}
+            <div className="sidebar__collapsed-section">
+              <div className="sidebar__collapsed-icon">
+                <Layout size={18} />
+              </div>
+              <div className="sidebar__flyout">
+                <div className="sidebar__flyout-header">Moodboards</div>
+                <div className="sidebar__flyout-empty">No moodboards yet</div>
+              </div>
+            </div>
+          </nav>
+        ) : (
           <nav className="sidebar__nav">
             {/* Collections */}
             <div className="sidebar__section">

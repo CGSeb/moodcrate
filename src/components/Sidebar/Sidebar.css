@@ -10,9 +10,15 @@
   overflow: hidden;
 }
 
-.sidebar--collapsed {
-  width: 40px;
-  min-width: 40px;
+.sidebar.sidebar--collapsed {
+  width: 46px;
+  min-width: 46px;
+  overflow: visible;
+  z-index: 50;
+}
+
+.sidebar--collapsed .sidebar__nav {
+  overflow: visible;
 }
 
 .sidebar__toggle {
@@ -116,6 +122,80 @@
 
 .sidebar__empty {
   padding: 6px 14px 6px 32px;
+  font-size: 12px;
+  color: #555;
+  font-style: italic;
+}
+
+/* Collapsed state */
+
+.sidebar__collapsed-section {
+  position: relative;
+}
+
+.sidebar__collapsed-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 0;
+  color: #777;
+  cursor: pointer;
+  border-bottom: 1px solid #2a2a2a;
+}
+
+.sidebar__collapsed-section:hover .sidebar__collapsed-icon {
+  color: #fff;
+  background: #2a2a2a;
+}
+
+.sidebar__flyout {
+  display: none;
+  position: absolute;
+  left: 100%;
+  top: 0;
+  min-width: 180px;
+  background: #252525;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+  padding: 6px 0;
+  z-index: 50;
+}
+
+.sidebar__collapsed-section:hover .sidebar__flyout {
+  display: block;
+}
+
+.sidebar__flyout-header {
+  padding: 8px 14px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #666;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.sidebar__flyout-item {
+  padding: 7px 14px;
+  font-size: 13px;
+  color: #aaa;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.sidebar__flyout-item:hover {
+  background: #333;
+  color: #fff;
+}
+
+.sidebar__flyout-item--active {
+  background: #333;
+  color: #fff;
+}
+
+.sidebar__flyout-empty {
+  padding: 7px 14px;
   font-size: 12px;
   color: #555;
   font-style: italic;
