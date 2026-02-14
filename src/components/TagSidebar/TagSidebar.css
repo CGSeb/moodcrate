@@ -91,7 +91,7 @@
 .tag-sidebar__item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   padding: 5px 14px;
   font-size: 13px;
   color: #ccc;
@@ -105,7 +105,8 @@
 }
 
 .tag-sidebar__item:hover .tag-sidebar__delete-btn,
-.tag-sidebar__item:hover .tag-sidebar__filter-btn {
+.tag-sidebar__item:hover .tag-sidebar__filter-btn,
+.tag-sidebar__item:hover .tag-sidebar__child-btn {
   opacity: 1;
 }
 
@@ -115,6 +116,43 @@
 
 .tag-sidebar__item:active {
   cursor: grabbing;
+}
+
+.tag-sidebar__item--drag-target {
+  outline: 1px dashed #5a7de8;
+  outline-offset: -1px;
+  background: rgba(90, 125, 232, 0.08);
+}
+
+/* Chevron expand/collapse */
+.tag-sidebar__expand-btn {
+  all: unset;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 2px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.tag-sidebar__expand-btn:hover {
+  background: #333;
+}
+
+.tag-sidebar__chevron {
+  transition: transform 0.15s ease;
+  color: #555;
+  flex-shrink: 0;
+}
+
+.tag-sidebar__chevron--open {
+  transform: rotate(90deg);
+}
+
+/* Spacer for leaf tags to maintain alignment */
+.tag-sidebar__expand-spacer {
+  width: 16px;
+  flex-shrink: 0;
 }
 
 .tag-sidebar__grip {
@@ -127,6 +165,24 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Add child tag button */
+.tag-sidebar__child-btn {
+  all: unset;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 2px;
+  border-radius: 3px;
+  color: #666;
+  opacity: 0;
+  transition: opacity 0.1s;
+}
+
+.tag-sidebar__child-btn:hover {
+  color: #5a7de8;
+  background: rgba(90, 125, 232, 0.15);
 }
 
 .tag-sidebar__filter-btn {
@@ -166,4 +222,21 @@
 .tag-sidebar__delete-btn:hover {
   color: #d94444;
   background: rgba(217, 68, 68, 0.15);
+}
+
+/* Root level drop zone for un-nesting */
+.tag-sidebar__root-drop {
+  padding: 4px 14px;
+  font-size: 11px;
+  color: #444;
+  text-align: center;
+  border: 1px dashed transparent;
+  border-radius: 4px;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.tag-sidebar__root-drop--active {
+  border-color: #5a7de8;
+  color: #5a7de8;
+  background: rgba(90, 125, 232, 0.08);
 }

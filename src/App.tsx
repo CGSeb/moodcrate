@@ -4,11 +4,13 @@ import Sidebar, { Collection } from "./components/Sidebar/Sidebar";
 import CollectionView from "./components/CollectionView/CollectionView";
 import MoodboardView from "./components/MoodboardView/MoodboardView";
 import { useLocalStorage } from "./hooks/useLocalStorage";
+import { wouldCreateCycle } from "./utils/tagTree";
 import "./App.css";
 
 export interface Tag {
   id: string;
   name: string;
+  parentId: string | null;
 }
 
 export interface Moodboard {
@@ -104,13 +106,19 @@ function App() {
     });
   }
 
-  function handleAddTag(name: string) {
+  function handleAddTag(name: string, parentId?: string | null) {
     const id = crypto.randomUUID();
-    setTags((prev) => [...prev, { id, name }]);
+    setTags((prev) => [...prev, { id, name, parentId: parentId ?? null }]);
   }
 
   function handleDeleteTag(tagId: string) {
-    setTags((prev) => prev.filter((t) => t.id !== tagId));
+    setTags((prev) => {
+      const tag = prev.find((t) => t.id === tagId);
+      const parentOfDeleted = tag?.parentId ?? null;
+      return prev
+        .filter((t) => t.id !== tagId)
+        .map((t) => t.parentId === tagId ? { ...t, parentId: parentOfDeleted } : t);
+    });
     setImageTags((prev) => {
       const next: Record<string, string[]> = {};
       for (const [path, ids] of Object.entries(prev)) {
@@ -118,6 +126,17 @@ function App() {
         if (filtered.length > 0) next[path] = filtered;
       }
       return next;
+    });
+  }
+
+  function handleSetTagParent(tagId: string, newParentId: string | null) {
+    setTags((prev) => {
+      if (newParentId && wouldCreateCycle(tagId, newParentId, prev)) return prev;
+      const tag = prev.find((t) => t.id === tagId);
+      if (!tag || (tag.parentId ?? null) === newParentId) return prev;
+      return prev.map((t) =>
+        t.id === tagId ? { ...t, parentId: newParentId } : t
+      );
     });
   }
 
@@ -178,6 +197,7 @@ function App() {
               imageTags={imageTags}
               onAddTag={handleAddTag}
               onDeleteTag={handleDeleteTag}
+              onSetTagParent={handleSetTagParent}
               onAddTagToImage={handleAddTagToImage}
               onRemoveTagFromImage={handleRemoveTagFromImage}
               moodboards={moodboards}
