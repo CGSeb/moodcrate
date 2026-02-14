@@ -1,11 +1,17 @@
-import { useState, useEffect, useRef } from "react";
-import { Trash2, ImagePlus } from "lucide-react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { Trash2, ImagePlus, Import, ClipboardPaste } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
+import { open } from "@tauri-apps/plugin-dialog";
+import { readImage } from "@tauri-apps/plugin-clipboard-manager";
 import type { Collection } from "../Sidebar/Sidebar";
 import type { Tag, Moodboard } from "../../App";
+import { useLocalStorage } from "../../hooks/useLocalStorage";
 import ConfirmDialog from "../ConfirmDialog/ConfirmDialog";
+import ImportDialog from "../ImportDialog/ImportDialog";
+import type { ImportMode } from "../ImportDialog/ImportDialog";
 import ImageViewer from "../ImageViewer/ImageViewer";
 import TagSidebar from "../TagSidebar/TagSidebar";
+import Tooltip from "../Tooltip/Tooltip";
 import "./CollectionView.css";
 
 interface ImageEntry {
@@ -39,12 +45,16 @@ export default function CollectionView({
   onAddImageToMoodboard,
 }: CollectionViewProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteImagePath, setDeleteImagePath] = useState<string | null>(null);
   const [images, setImages] = useState<ImageEntry[]>([]);
   const [viewerPath, setViewerPath] = useState<string | null>(null);
   const [viewerSrc, setViewerSrc] = useState<string | null>(null);
   const [dragOverPath, setDragOverPath] = useState<string | null>(null);
   const [filterTagIds, setFilterTagIds] = useState<Set<string>>(new Set());
   const [moodboardPickerPath, setMoodboardPickerPath] = useState<string | null>(null);
+  const [importDialogFiles, setImportDialogFiles] = useState<string[] | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [rememberedImportMode, setRememberedImportMode] = useLocalStorage<ImportMode | null>("importMode", null);
   const pickerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -71,7 +81,7 @@ export default function CollectionView({
 
     loadImages();
     return () => { cancelled = true; };
-  }, [collection.path]);
+  }, [collection.path, refreshKey]);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -93,6 +103,77 @@ export default function CollectionView({
       return next;
     });
   }, [tags]);
+
+  async function doImport(files: string[], mode: ImportMode) {
+    try {
+      await invoke<string[]>("import_files", {
+        sources: files,
+        targetDir: collection.path,
+        mode,
+      });
+      setRefreshKey((k) => k + 1);
+    } catch (err) {
+      console.error("Import failed:", err);
+    }
+  }
+
+  async function handleImportFromDisk() {
+    const selected = await open({
+      multiple: true,
+      filters: [{
+        name: "Images",
+        extensions: ["png", "jpg", "jpeg", "gif", "bmp", "webp", "svg", "tiff", "tif", "avif"],
+      }],
+    });
+
+    if (!selected || selected.length === 0) return;
+
+    if (rememberedImportMode) {
+      await doImport(selected, rememberedImportMode);
+    } else {
+      setImportDialogFiles(selected);
+    }
+  }
+
+  function handleImportDialogConfirm(mode: ImportMode, remember: boolean) {
+    if (remember) {
+      setRememberedImportMode(mode);
+    }
+    if (importDialogFiles) {
+      doImport(importDialogFiles, mode);
+    }
+    setImportDialogFiles(null);
+  }
+
+  const handlePasteFromClipboard = useCallback(async () => {
+    try {
+      const clipImage = await readImage();
+      const rgba = await clipImage.rgba();
+      const { width, height } = await clipImage.size();
+
+      await invoke<string>("save_clipboard_image", {
+        rgbaData: Array.from(rgba),
+        width,
+        height,
+        targetDir: collection.path,
+      });
+
+      setRefreshKey((k) => k + 1);
+    } catch (err) {
+      console.error("Clipboard paste failed:", err);
+    }
+  }, [collection.path]);
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.ctrlKey && e.key === "v") {
+        e.preventDefault();
+        handlePasteFromClipboard();
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handlePasteFromClipboard]);
 
   async function handleOpenViewer(path: string) {
     setViewerPath(path);
@@ -117,6 +198,18 @@ export default function CollectionView({
   function handleConfirmDelete() {
     setShowDeleteConfirm(false);
     onDelete();
+  }
+
+  async function handleConfirmDeleteImage() {
+    if (!deleteImagePath) return;
+    try {
+      await invoke("delete_image", { path: deleteImagePath });
+      setDeleteImagePath(null);
+      setRefreshKey((k) => k + 1);
+    } catch (err) {
+      console.error("Delete image failed:", err);
+      setDeleteImagePath(null);
+    }
   }
 
   function handleDragOver(e: React.DragEvent, path: string) {
@@ -166,13 +259,33 @@ export default function CollectionView({
     <div className="collection-view">
       <div className="collection-view__header">
         <h1>{collection.name} <span className="collection-view__count">({filteredImages.length})</span></h1>
-        <button
-          className="collection-view__delete-btn"
-          onClick={() => setShowDeleteConfirm(true)}
-          aria-label="Delete collection"
-        >
-          <Trash2 size={18} />
-        </button>
+        <div className="collection-view__toolbar">
+          <Tooltip text="Import images">
+            <button
+              className="collection-view__toolbar-btn"
+              onClick={handleImportFromDisk}
+              aria-label="Import images from disk"
+            >
+              <Import size={18} />
+            </button>
+          </Tooltip>
+          <Tooltip text="Paste from clipboard (Ctrl+V)">
+            <button
+              className="collection-view__toolbar-btn"
+              onClick={handlePasteFromClipboard}
+              aria-label="Paste image from clipboard"
+            >
+              <ClipboardPaste size={18} />
+            </button>
+          </Tooltip>
+          <button
+            className="collection-view__delete-btn"
+            onClick={() => setShowDeleteConfirm(true)}
+            aria-label="Delete collection"
+          >
+            <Trash2 size={18} />
+          </button>
+        </div>
       </div>
 
       <div className="collection-view__body">
@@ -195,53 +308,67 @@ export default function CollectionView({
                   ) : (
                     <div className="collection-view__placeholder" />
                   )}
-                  {moodboards.length > 0 && (
-                    <div className="collection-view__add-to-mb">
+                  <div className="collection-view__tile-actions">
+                    {moodboards.length > 0 && (
+                      <Tooltip text="Add to moodboard">
+                        <span
+                          className="collection-view__tile-action-btn"
+                          role="button"
+                          tabIndex={0}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setMoodboardPickerPath(moodboardPickerPath === img.path ? null : img.path);
+                          }}
+                        >
+                          <ImagePlus size={16} />
+                        </span>
+                      </Tooltip>
+                    )}
+                    <Tooltip text="Delete image">
                       <span
-                        className="collection-view__add-to-mb-btn"
+                        className="collection-view__tile-action-btn collection-view__tile-action-btn--danger"
                         role="button"
                         tabIndex={0}
                         onClick={(e) => {
                           e.stopPropagation();
-                          setMoodboardPickerPath(moodboardPickerPath === img.path ? null : img.path);
+                          setDeleteImagePath(img.path);
                         }}
-                        title="Add to moodboard"
                       >
-                        <ImagePlus size={16} />
+                        <Trash2 size={16} />
                       </span>
-                      {moodboardPickerPath === img.path && (
-                        <div className="collection-view__mb-picker" ref={pickerRef}>
-                          {moodboards.map((mb) => (
-                            <button
-                              key={mb.id}
-                              className="collection-view__mb-picker-item"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onAddImageToMoodboard(mb.id, img.path);
-                                setMoodboardPickerPath(null);
-                              }}
-                            >
-                              {mb.name}
-                            </button>
-                          ))}
-                        </div>
-                      )}
+                    </Tooltip>
+                  </div>
+                  {moodboardPickerPath === img.path && (
+                    <div className="collection-view__mb-picker" ref={pickerRef}>
+                      {moodboards.map((mb) => (
+                        <button
+                          key={mb.id}
+                          className="collection-view__mb-picker-item"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onAddImageToMoodboard(mb.id, img.path);
+                            setMoodboardPickerPath(null);
+                          }}
+                        >
+                          {mb.name}
+                        </button>
+                      ))}
                     </div>
                   )}
                   {imgTags.length > 0 && (
                     <div className="collection-view__tags">
                       {imgTags.slice(0, 3).map((tag) => (
-                        <span
-                          key={tag.id}
-                          className="collection-view__tag-badge"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onRemoveTagFromImage(img.path, tag.id);
-                          }}
-                          title={`Remove "${tag.name}"`}
-                        >
-                          {tag.name}
-                        </span>
+                        <Tooltip key={tag.id} text={`Remove "${tag.name}"`}>
+                          <span
+                            className="collection-view__tag-badge"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onRemoveTagFromImage(img.path, tag.id);
+                            }}
+                          >
+                            {tag.name}
+                          </span>
+                        </Tooltip>
                       ))}
                       {imgTags.length > 3 && (
                         <span className="collection-view__tag-badge collection-view__tag-badge--more">
@@ -268,6 +395,22 @@ export default function CollectionView({
       {viewerPath && viewerSrc && (
         <ImageViewer src={viewerSrc} onClose={handleCloseViewer} />
       )}
+
+      <ImportDialog
+        open={importDialogFiles !== null}
+        fileCount={importDialogFiles?.length ?? 0}
+        onConfirm={handleImportDialogConfirm}
+        onCancel={() => setImportDialogFiles(null)}
+      />
+
+      <ConfirmDialog
+        open={deleteImagePath !== null}
+        title="Delete Image"
+        message="Are you sure you want to delete this image from disk? This cannot be undone."
+        confirmLabel="Delete"
+        onConfirm={handleConfirmDeleteImage}
+        onCancel={() => setDeleteImagePath(null)}
+      />
 
       <ConfirmDialog
         open={showDeleteConfirm}

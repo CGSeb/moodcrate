@@ -17,6 +17,27 @@
   color: #888;
 }
 
+.collection-view__toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.collection-view__toolbar-btn {
+  all: unset;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 6px;
+  border-radius: 6px;
+  color: #999;
+}
+
+.collection-view__toolbar-btn:hover {
+  background: #2a2a2a;
+  color: #eee;
+}
+
 .collection-view__delete-btn {
   all: unset;
   cursor: pointer;
@@ -144,14 +165,22 @@
   color: #999;
 }
 
-.collection-view__add-to-mb {
+.collection-view__tile-actions {
   position: absolute;
   top: 6px;
   right: 6px;
+  display: flex;
+  gap: 4px;
   z-index: 3;
+  opacity: 0;
+  transition: opacity 0.15s;
 }
 
-.collection-view__add-to-mb-btn {
+.collection-view__tile:hover .collection-view__tile-actions {
+  opacity: 1;
+}
+
+.collection-view__tile-action-btn {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -161,23 +190,22 @@
   background: rgba(0, 0, 0, 0.6);
   color: #ccc;
   cursor: pointer;
-  opacity: 0;
-  transition: opacity 0.15s;
 }
 
-.collection-view__tile:hover .collection-view__add-to-mb-btn {
-  opacity: 1;
-}
-
-.collection-view__add-to-mb-btn:hover {
+.collection-view__tile-action-btn:hover {
   background: rgba(90, 125, 232, 0.8);
+  color: #fff;
+}
+
+.collection-view__tile-action-btn--danger:hover {
+  background: rgba(217, 68, 68, 0.8);
   color: #fff;
 }
 
 .collection-view__mb-picker {
   position: absolute;
-  top: 32px;
-  right: 0;
+  top: 38px;
+  right: 6px;
   min-width: 140px;
   background: #1e1e1e;
   border: 1px solid #333;
