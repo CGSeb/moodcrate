@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Trash2, ImagePlus, Import, ClipboardPaste } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
@@ -12,6 +12,7 @@ import type { ImportMode } from "../ImportDialog/ImportDialog";
 import ImageViewer from "../ImageViewer/ImageViewer";
 import TagSidebar from "../TagSidebar/TagSidebar";
 import Tooltip from "../Tooltip/Tooltip";
+import { getDescendantIds } from "../../utils/tagTree";
 import "./CollectionView.css";
 
 interface ImageEntry {
@@ -24,8 +25,9 @@ interface CollectionViewProps {
   onDelete: () => void;
   tags: Tag[];
   imageTags: Record<string, string[]>;
-  onAddTag: (name: string) => void;
+  onAddTag: (name: string, parentId?: string | null) => void;
   onDeleteTag: (tagId: string) => void;
+  onSetTagParent: (tagId: string, newParentId: string | null) => void;
   onAddTagToImage: (imagePath: string, tagId: string) => void;
   onRemoveTagFromImage: (imagePath: string, tagId: string) => void;
   moodboards: Moodboard[];
@@ -39,6 +41,7 @@ export default function CollectionView({
   imageTags,
   onAddTag,
   onDeleteTag,
+  onSetTagParent,
   onAddTagToImage,
   onRemoveTagFromImage,
   moodboards,
@@ -248,11 +251,20 @@ export default function CollectionView({
     return tags.filter((t) => ids.includes(t.id));
   }
 
-  const filteredImages = filterTagIds.size === 0
+  const expandedFilterIds = useMemo(() => {
+    if (filterTagIds.size === 0) return new Set<string>();
+    const expanded = new Set<string>();
+    for (const fid of filterTagIds) {
+      for (const did of getDescendantIds(fid, tags)) expanded.add(did);
+    }
+    return expanded;
+  }, [filterTagIds, tags]);
+
+  const filteredImages = expandedFilterIds.size === 0
     ? images
     : images.filter((img) => {
         const ids = imageTags[img.path] || [];
-        return Array.from(filterTagIds).some((fid) => ids.includes(fid));
+        return ids.some((id) => expandedFilterIds.has(id));
       });
 
   return (
@@ -389,6 +401,7 @@ export default function CollectionView({
           onToggleFilter={handleToggleFilter}
           onAddTag={onAddTag}
           onDeleteTag={onDeleteTag}
+          onSetTagParent={onSetTagParent}
         />
       </div>
 
