@@ -1,0 +1,18 @@
+.tooltip-wrapper {
+  display: inline-flex;
+}
+
+.tooltip {
+  position: fixed;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #eee;
+  background: #1e1e1e;
+  border: 1px solid #3a3a3a;
+  border-radius: 6px;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 200;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}

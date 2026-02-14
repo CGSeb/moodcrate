@@ -1,0 +1,104 @@
+.import-dialog__overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.import-dialog {
+  background: #252525;
+  border: 1px solid #3a3a3a;
+  border-radius: 10px;
+  width: 380px;
+  padding: 20px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.import-dialog__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.import-dialog__title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #eee;
+}
+
+.import-dialog__close {
+  all: unset;
+  cursor: pointer;
+  color: #666;
+  display: flex;
+  align-items: center;
+  padding: 4px;
+  border-radius: 4px;
+}
+
+.import-dialog__close:hover {
+  color: #ccc;
+  background: #333;
+}
+
+.import-dialog__message {
+  font-size: 14px;
+  color: #999;
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+
+.import-dialog__options {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.import-dialog__option {
+  all: unset;
+  cursor: pointer;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 8px;
+  border: 1px solid #3a3a3a;
+  color: #ccc;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.import-dialog__option:hover {
+  border-color: #5a7de8;
+  background: rgba(90, 125, 232, 0.1);
+  color: #fff;
+}
+
+.import-dialog__option-label {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.import-dialog__option-desc {
+  font-size: 12px;
+  color: #777;
+  margin-top: 2px;
+}
+
+.import-dialog__remember {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #888;
+  cursor: pointer;
+  user-select: none;
+}
+
+.import-dialog__remember input[type="checkbox"] {
+  accent-color: #5a7de8;
+}
