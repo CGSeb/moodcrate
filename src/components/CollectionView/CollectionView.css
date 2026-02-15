@@ -38,6 +38,43 @@
   color: #eee;
 }
 
+.collection-view__settings-wrap {
+  position: relative;
+}
+
+.collection-view__settings-popover {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 6px;
+  width: 200px;
+  background: #1e1e1e;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  z-index: 20;
+}
+
+.collection-view__settings-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #aaa;
+  margin-bottom: 8px;
+}
+
+.collection-view__settings-value {
+  font-weight: 600;
+  color: #eee;
+}
+
+.collection-view__settings-slider {
+  width: 100%;
+  accent-color: #5a7de8;
+}
+
 .collection-view__delete-btn {
   all: unset;
   cursor: pointer;

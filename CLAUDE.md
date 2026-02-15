@@ -12,7 +12,7 @@
 | Frontend | **React 19** + TypeScript + Vite |
 | State | **localStorage** (via `useLocalStorage` hook) |
 | Icons | **lucide-react** |
-| Tauri plugins | `dialog`, `opener` |
+| Tauri plugins | `dialog`, `opener`, `clipboard-manager` |
 
 ## Architecture
 
@@ -24,15 +24,19 @@ Moodcrate/
     assets/                     #   Static assets (icon.svg)
     hooks/
       useLocalStorage.ts        #   Persistent state hook
+    utils/
+      tagTree.ts                #   Tag hierarchy helpers (flatten, children map, cycle detection)
     components/
       Titlebar/                 #   Custom window titlebar
       Sidebar/                  #   Navigation sidebar (collections + moodboards)
       CollectionView/           #   Image grid for a collection
-      MoodboardView/            #   Moodboard canvas view
+      MoodboardView/            #   Moodboard canvas (pan, zoom, box-select, multi-drag)
       ImageViewer/              #   Full-screen image viewer overlay
-      TagSidebar/               #   Tag management panel
-      NameDialog/               #   Reusable naming prompt dialog
+      TagSidebar/               #   Tag management panel (hierarchical, drag-to-nest)
+      ImportDialog/             #   Image import mode dialog (copy vs reference)
+      NameDialog/               #   Reusable naming prompt dialog (with validation)
       ConfirmDialog/            #   Reusable confirmation dialog
+      Tooltip/                  #   Reusable tooltip component
   src-tauri/                    # Rust backend (Tauri)
     src/
       lib.rs                    #   Tauri commands and setup
@@ -51,18 +55,25 @@ Moodcrate/
 ## Core Features
 
 ### Implemented
-- Import images into collections (file picker via Tauri dialog)
+- Import images into collections (file picker, clipboard paste, copy or reference modes)
 - Create and delete image collections
 - View collection images in a grid with full-screen image viewer
-- Tag images with custom labels; manage tags via TagSidebar
+- Delete images from collections
+- Hierarchical tags with parent-child nesting (drag-to-nest in TagSidebar)
+- Tag images with custom labels; filter images by tags (with descendant filtering)
+- Duplicate tag name prevention (global, case-insensitive)
+- Moodboard canvas with pan (middle-click), zoom (scroll wheel), and dot grid background
+- Add images to moodboards from collections
+- Arrange images freely on moodboard canvas (drag to move, resize handle)
+- Box-select multiple images on moodboard (marquee selection)
+- Multi-drag: move all selected images together
+- Shift+click and Escape key for selection management
 - Create, list, select, and delete moodboards
 - Custom window titlebar with home navigation
 - Collapsible sidebar with collections and moodboards sections
 
 ### Planned
-- Drag-and-drop and clipboard paste image import
-- Search and filter by tags, categories, colors
-- Arrange images freely on a moodboard canvas
+- Search and filter by categories, colors
 - Image thumbnails and metadata processing
 
 ## Environment

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { Trash2, ImagePlus, Import, ClipboardPaste } from "lucide-react";
+import { Trash2, ImagePlus, Import, ClipboardPaste, Settings } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import { readImage } from "@tauri-apps/plugin-clipboard-manager";
@@ -58,7 +58,10 @@ export default function CollectionView({
   const [importDialogFiles, setImportDialogFiles] = useState<string[] | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [rememberedImportMode, setRememberedImportMode] = useLocalStorage<ImportMode | null>("importMode", null);
+  const [columnsPerRow, setColumnsPerRow] = useLocalStorage<number>("columnsPerRow", 0);
+  const [showSettings, setShowSettings] = useState(false);
   const pickerRef = useRef<HTMLDivElement>(null);
+  const settingsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -97,6 +100,18 @@ export default function CollectionView({
       return () => document.removeEventListener("mousedown", handleClickOutside);
     }
   }, [moodboardPickerPath]);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (settingsRef.current && !settingsRef.current.contains(e.target as Node)) {
+        setShowSettings(false);
+      }
+    }
+    if (showSettings) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [showSettings]);
 
   useEffect(() => {
     const validIds = new Set(tags.map((t) => t.id));
@@ -290,6 +305,36 @@ export default function CollectionView({
               <ClipboardPaste size={18} />
             </button>
           </Tooltip>
+          <div className="collection-view__settings-wrap" ref={settingsRef}>
+            <Tooltip text="Grid settings">
+              <button
+                className="collection-view__toolbar-btn"
+                onClick={() => setShowSettings((v) => !v)}
+                aria-label="Grid settings"
+              >
+                <Settings size={18} />
+              </button>
+            </Tooltip>
+            {showSettings && (
+              <div className="collection-view__settings-popover">
+                <label className="collection-view__settings-label">
+                  Images per row
+                  <span className="collection-view__settings-value">
+                    {columnsPerRow === 0 ? "Auto" : columnsPerRow}
+                  </span>
+                </label>
+                <input
+                  type="range"
+                  className="collection-view__settings-slider"
+                  min={0}
+                  max={10}
+                  step={1}
+                  value={columnsPerRow}
+                  onChange={(e) => setColumnsPerRow(Number(e.target.value))}
+                />
+              </div>
+            )}
+          </div>
           <button
             className="collection-view__delete-btn"
             onClick={() => setShowDeleteConfirm(true)}
@@ -302,7 +347,10 @@ export default function CollectionView({
 
       <div className="collection-view__body">
         <div className="collection-view__grid-area">
-          <div className="collection-view__grid">
+          <div
+            className="collection-view__grid"
+            style={columnsPerRow > 0 ? { gridTemplateColumns: `repeat(${columnsPerRow}, 1fr)` } : undefined}
+          >
             {filteredImages.map((img) => {
               const imgTags = getImageTags(img.path);
               const isDragOver = dragOverPath === img.path;
