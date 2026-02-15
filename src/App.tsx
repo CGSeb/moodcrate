@@ -49,6 +49,22 @@ function App() {
     setSelectedCollection(null);
   }
 
+  function handleCreateMoodboardWithImage(name: string, imagePath: string) {
+    const mb: Moodboard = { id: crypto.randomUUID(), name };
+    setMoodboards((prev) => [...prev, mb]);
+    const entry: MoodboardImage = {
+      id: crypto.randomUUID(),
+      path: imagePath,
+      x: 300,
+      y: 200,
+      width: 200,
+      height: 200,
+    };
+    setMoodboardImages((prev) => ({ ...prev, [mb.id]: [entry] }));
+    setSelectedMoodboard(mb);
+    setSelectedCollection(null);
+  }
+
   function handleDeleteMoodboard() {
     if (!selectedMoodboard) return;
     setMoodboards((prev) => prev.filter((m) => m.id !== selectedMoodboard.id));
@@ -209,6 +225,7 @@ function App() {
               onRemoveTagFromImage={handleRemoveTagFromImage}
               moodboards={moodboards}
               onAddImageToMoodboard={handleAddImageToMoodboard}
+              onCreateMoodboardWithImage={handleCreateMoodboardWithImage}
             />
           ) : selectedMoodboard ? (
             <MoodboardView

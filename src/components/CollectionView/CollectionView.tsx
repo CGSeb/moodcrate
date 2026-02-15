@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { Trash2, ImagePlus, Import, ClipboardPaste, Settings } from "lucide-react";
+import { Trash2, ImagePlus, Import, ClipboardPaste, Settings, Plus } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import { readImage } from "@tauri-apps/plugin-clipboard-manager";
@@ -10,6 +10,7 @@ import ConfirmDialog from "../ConfirmDialog/ConfirmDialog";
 import ImportDialog from "../ImportDialog/ImportDialog";
 import type { ImportMode } from "../ImportDialog/ImportDialog";
 import ImageViewer from "../ImageViewer/ImageViewer";
+import NameDialog from "../NameDialog/NameDialog";
 import TagSidebar from "../TagSidebar/TagSidebar";
 import Tooltip from "../Tooltip/Tooltip";
 import { getDescendantIds } from "../../utils/tagTree";
@@ -32,6 +33,7 @@ interface CollectionViewProps {
   onRemoveTagFromImage: (imagePath: string, tagId: string) => void;
   moodboards: Moodboard[];
   onAddImageToMoodboard: (moodboardId: string, imagePath: string) => void;
+  onCreateMoodboardWithImage: (name: string, imagePath: string) => void;
 }
 
 export default function CollectionView({
@@ -46,6 +48,7 @@ export default function CollectionView({
   onRemoveTagFromImage,
   moodboards,
   onAddImageToMoodboard,
+  onCreateMoodboardWithImage,
 }: CollectionViewProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteImagePath, setDeleteImagePath] = useState<string | null>(null);
@@ -56,6 +59,7 @@ export default function CollectionView({
   const [filterTagIds, setFilterTagIds] = useState<Set<string>>(new Set());
   const [moodboardPickerPath, setMoodboardPickerPath] = useState<string | null>(null);
   const [importDialogFiles, setImportDialogFiles] = useState<string[] | null>(null);
+  const [newMbForImage, setNewMbForImage] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [rememberedImportMode, setRememberedImportMode] = useLocalStorage<ImportMode | null>("importMode", null);
   const [columnsPerRow, setColumnsPerRow] = useLocalStorage<number>("columnsPerRow", 0);
@@ -369,21 +373,19 @@ export default function CollectionView({
                     <div className="collection-view__placeholder" />
                   )}
                   <div className="collection-view__tile-actions">
-                    {moodboards.length > 0 && (
-                      <Tooltip text="Add to moodboard">
-                        <span
-                          className="collection-view__tile-action-btn"
-                          role="button"
-                          tabIndex={0}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setMoodboardPickerPath(moodboardPickerPath === img.path ? null : img.path);
-                          }}
-                        >
-                          <ImagePlus size={16} />
-                        </span>
-                      </Tooltip>
-                    )}
+                    <Tooltip text="Add to moodboard">
+                      <span
+                        className="collection-view__tile-action-btn"
+                        role="button"
+                        tabIndex={0}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setMoodboardPickerPath(moodboardPickerPath === img.path ? null : img.path);
+                        }}
+                      >
+                        <ImagePlus size={16} />
+                      </span>
+                    </Tooltip>
                     <Tooltip text="Delete image">
                       <span
                         className="collection-view__tile-action-btn collection-view__tile-action-btn--danger"
@@ -413,6 +415,17 @@ export default function CollectionView({
                           {mb.name}
                         </button>
                       ))}
+                      <button
+                        className="collection-view__mb-picker-item collection-view__mb-picker-item--new"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setNewMbForImage(img.path);
+                          setMoodboardPickerPath(null);
+                        }}
+                      >
+                        <Plus size={14} />
+                        New moodboard
+                      </button>
                     </div>
                   )}
                   {imgTags.length > 0 && (
@@ -480,6 +493,19 @@ export default function CollectionView({
         confirmLabel="Delete"
         onConfirm={handleConfirmDelete}
         onCancel={() => setShowDeleteConfirm(false)}
+      />
+
+      <NameDialog
+        open={newMbForImage !== null}
+        title="New Moodboard"
+        placeholder="Moodboard name..."
+        onConfirm={(name) => {
+          if (newMbForImage) {
+            onCreateMoodboardWithImage(name, newMbForImage);
+          }
+          setNewMbForImage(null);
+        }}
+        onCancel={() => setNewMbForImage(null)}
       />
     </div>
   );

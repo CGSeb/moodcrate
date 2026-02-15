@@ -100,6 +100,58 @@ export default function MoodboardView({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [images]);
 
+  // Zoom-to-fit when opening a moodboard or after images finish loading
+  const hasFittedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (images.length === 0 || loadedImages.length === 0) return;
+    if (hasFittedRef.current === moodboard.id) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    // Wait a frame so DOM elements have rendered with natural dimensions
+    requestAnimationFrame(() => {
+      const rect = canvas.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) return;
+
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      for (const img of images) {
+        const left = img.x;
+        const top = img.y;
+        const right = img.x + img.width;
+        // Try to get actual height from DOM
+        const el = canvas.querySelector(`[data-img-id="${img.id}"] img`) as HTMLImageElement | null;
+        let imgHeight = img.width; // fallback: square
+        if (el && el.naturalHeight && el.naturalWidth) {
+          imgHeight = (img.width * el.naturalHeight) / el.naturalWidth;
+        }
+        const bottom = top + imgHeight;
+        if (left < minX) minX = left;
+        if (top < minY) minY = top;
+        if (right > maxX) maxX = right;
+        if (bottom > maxY) maxY = bottom;
+      }
+
+      const contentW = maxX - minX;
+      const contentH = maxY - minY;
+      if (contentW <= 0 || contentH <= 0) return;
+
+      const padding = 40;
+      const availW = rect.width - padding * 2;
+      const availH = rect.height - padding * 2;
+      const fitZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Math.min(availW / contentW, availH / contentH)));
+
+      const centerX = (minX + maxX) / 2;
+      const centerY = (minY + maxY) / 2;
+      const newPanX = rect.width / 2 - centerX * fitZoom;
+      const newPanY = rect.height / 2 - centerY * fitZoom;
+
+      setPanX(newPanX);
+      setPanY(newPanY);
+      setZoom(fitZoom);
+      hasFittedRef.current = moodboard.id;
+    });
+  }, [moodboard.id, images, loadedImages]);
+
   // Clear selection when images change (e.g. image removed)
   useEffect(() => {
     setSelectedIds((prev) => {

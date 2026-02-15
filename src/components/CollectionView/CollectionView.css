@@ -267,3 +267,17 @@
   background: #2a2a2a;
   color: #fff;
 }
+
+.collection-view__mb-picker-item--new {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-top: 1px solid #333;
+  margin-top: 2px;
+  padding-top: 8px;
+  color: #5a7de8;
+}
+
+.collection-view__mb-picker-item--new:hover {
+  color: #fff;
+}
