@@ -18,9 +18,29 @@ interface LoadedImage {
   dataUrl: string;
 }
 
+interface DragState {
+  startX: number;
+  startY: number;
+  items: { id: string; imgStartX: number; imgStartY: number }[];
+}
+
+interface MarqueeState {
+  startX: number;
+  startY: number;
+  currentX: number;
+  currentY: number;
+}
+
 const MIN_ZOOM = 0.1;
 const MAX_ZOOM = 5;
 const ZOOM_SPEED = 0.001;
+
+function rectsIntersect(
+  a: { left: number; top: number; right: number; bottom: number },
+  b: { left: number; top: number; right: number; bottom: number },
+) {
+  return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+}
 
 export default function MoodboardView({
   moodboard,
@@ -31,13 +51,29 @@ export default function MoodboardView({
 }: MoodboardViewProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [loadedImages, setLoadedImages] = useState<LoadedImage[]>([]);
-  const [dragging, setDragging] = useState<{ id: string; startX: number; startY: number; imgStartX: number; imgStartY: number } | null>(null);
+  const [dragging, setDragging] = useState<DragState | null>(null);
   const [resizing, setResizing] = useState<{ id: string; startX: number; startWidth: number } | null>(null);
   const [panning, setPanning] = useState<{ startX: number; startY: number; panStartX: number; panStartY: number } | null>(null);
+  const [marquee, setMarquee] = useState<MarqueeState | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [panX, setPanX] = useState(0);
   const [panY, setPanY] = useState(0);
   const [zoom, setZoom] = useState(1);
   const canvasRef = useRef<HTMLDivElement>(null);
+  const panXRef = useRef(panX);
+  const panYRef = useRef(panY);
+  const zoomRef = useRef(zoom);
+  panXRef.current = panX;
+  panYRef.current = panY;
+  zoomRef.current = zoom;
+
+  function clientToCanvas(clientX: number, clientY: number) {
+    const rect = canvasRef.current!.getBoundingClientRect();
+    return {
+      x: (clientX - rect.left - panXRef.current) / zoomRef.current,
+      y: (clientY - rect.top - panYRef.current) / zoomRef.current,
+    };
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -64,6 +100,24 @@ export default function MoodboardView({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [images]);
 
+  // Clear selection when images change (e.g. image removed)
+  useEffect(() => {
+    setSelectedIds((prev) => {
+      const imageIdSet = new Set(images.map((i) => i.id));
+      const filtered = new Set([...prev].filter((id) => imageIdSet.has(id)));
+      return filtered.size === prev.size ? prev : filtered;
+    });
+  }, [images]);
+
+  // Escape key clears selection
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setSelectedIds(new Set());
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
   function handleConfirmDelete() {
     setShowDeleteConfirm(false);
     onDelete();
@@ -74,15 +128,37 @@ export default function MoodboardView({
     if (e.button !== 0) return;
     e.preventDefault();
     e.stopPropagation();
-    const img = images.find((i) => i.id === imgId);
-    if (!img) return;
-    setDragging({
-      id: imgId,
-      startX: e.clientX,
-      startY: e.clientY,
-      imgStartX: img.x,
-      imgStartY: img.y,
-    });
+
+    const isSelected = selectedIds.has(imgId);
+
+    if (e.shiftKey) {
+      // Shift+click: toggle selection
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(imgId)) next.delete(imgId);
+        else next.add(imgId);
+        return next;
+      });
+      return;
+    }
+
+    if (isSelected) {
+      // Drag all selected images
+      const items = images
+        .filter((i) => selectedIds.has(i.id))
+        .map((i) => ({ id: i.id, imgStartX: i.x, imgStartY: i.y }));
+      setDragging({ startX: e.clientX, startY: e.clientY, items });
+    } else {
+      // Click on unselected image: select only this one and start dragging it
+      setSelectedIds(new Set([imgId]));
+      const img = images.find((i) => i.id === imgId);
+      if (!img) return;
+      setDragging({
+        startX: e.clientX,
+        startY: e.clientY,
+        items: [{ id: imgId, imgStartX: img.x, imgStartY: img.y }],
+      });
+    }
   }
 
   function handleResizeMouseDown(e: React.MouseEvent, imgId: string) {
@@ -94,17 +170,36 @@ export default function MoodboardView({
     setResizing({ id: imgId, startX: e.clientX, startWidth: img.width });
   }
 
+  // --- Canvas mouse down: middle = pan, left = marquee ---
+  function handleCanvasMouseDown(e: React.MouseEvent) {
+    if (e.button === 1) {
+      e.preventDefault();
+      setPanning({
+        startX: e.clientX,
+        startY: e.clientY,
+        panStartX: panX,
+        panStartY: panY,
+      });
+    } else if (e.button === 0) {
+      // Left-click on empty canvas area: start marquee
+      const pos = clientToCanvas(e.clientX, e.clientY);
+      setMarquee({ startX: pos.x, startY: pos.y, currentX: pos.x, currentY: pos.y });
+    }
+  }
+
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (dragging) {
-      const dx = (e.clientX - dragging.startX) / zoom;
-      const dy = (e.clientY - dragging.startY) / zoom;
-      onUpdateImage(dragging.id, {
-        x: dragging.imgStartX + dx,
-        y: dragging.imgStartY + dy,
-      });
+      const dx = (e.clientX - dragging.startX) / zoomRef.current;
+      const dy = (e.clientY - dragging.startY) / zoomRef.current;
+      for (const item of dragging.items) {
+        onUpdateImage(item.id, {
+          x: item.imgStartX + dx,
+          y: item.imgStartY + dy,
+        });
+      }
     }
     if (resizing) {
-      const dx = (e.clientX - resizing.startX) / zoom;
+      const dx = (e.clientX - resizing.startX) / zoomRef.current;
       const newWidth = Math.max(50, resizing.startWidth + dx);
       onUpdateImage(resizing.id, { width: newWidth });
     }
@@ -112,35 +207,66 @@ export default function MoodboardView({
       setPanX(panning.panStartX + (e.clientX - panning.startX));
       setPanY(panning.panStartY + (e.clientY - panning.startY));
     }
-  }, [dragging, resizing, panning, zoom, onUpdateImage]);
+    if (marquee) {
+      const pos = clientToCanvas(e.clientX, e.clientY);
+      setMarquee((prev) => prev ? { ...prev, currentX: pos.x, currentY: pos.y } : null);
+    }
+  }, [dragging, resizing, panning, marquee, onUpdateImage]);
 
   const handleMouseUp = useCallback((e: MouseEvent) => {
     if (dragging && e.button === 0) setDragging(null);
     if (resizing && e.button === 0) setResizing(null);
     if (panning && e.button === 1) setPanning(null);
-  }, [dragging, resizing, panning]);
+    if (marquee && e.button === 0) {
+      // Compute selection from marquee
+      const left = Math.min(marquee.startX, marquee.currentX);
+      const top = Math.min(marquee.startY, marquee.currentY);
+      const right = Math.max(marquee.startX, marquee.currentX);
+      const bottom = Math.max(marquee.startY, marquee.currentY);
+      const marqueeWidth = right - left;
+      const marqueeHeight = bottom - top;
+
+      if (marqueeWidth > 3 || marqueeHeight > 3) {
+        // Real marquee drag: select intersecting images
+        const marqueeRect = { left, top, right, bottom };
+        const newSelected = new Set<string>();
+        for (const img of images) {
+          const imgRect = {
+            left: img.x,
+            top: img.y,
+            right: img.x + img.width,
+            bottom: img.y + img.width, // approximate height as width for square-ish check
+          };
+          // Use loaded image to get actual rendered height if possible
+          const loaded = loadedImages.find((l) => l.id === img.id);
+          if (loaded) {
+            const el = document.querySelector(`[data-img-id="${img.id}"] img`) as HTMLImageElement | null;
+            if (el && el.naturalHeight && el.naturalWidth) {
+              imgRect.bottom = img.y + (img.width * el.naturalHeight) / el.naturalWidth;
+            }
+          }
+          if (rectsIntersect(marqueeRect, imgRect)) {
+            newSelected.add(img.id);
+          }
+        }
+        setSelectedIds(newSelected);
+      } else {
+        // Tiny drag = click on empty space: clear selection
+        setSelectedIds(new Set());
+      }
+      setMarquee(null);
+    }
+  }, [dragging, resizing, panning, marquee, images, loadedImages]);
 
   useEffect(() => {
-    if (!dragging && !resizing && !panning) return;
+    if (!dragging && !resizing && !panning && !marquee) return;
     window.addEventListener("mousemove", handleMouseMove);
     window.addEventListener("mouseup", handleMouseUp);
     return () => {
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
     };
-  }, [dragging, resizing, panning, handleMouseMove, handleMouseUp]);
-
-  // --- Canvas panning (middle mouse button) ---
-  function handleCanvasMouseDown(e: React.MouseEvent) {
-    if (e.button !== 1) return;
-    e.preventDefault();
-    setPanning({
-      startX: e.clientX,
-      startY: e.clientY,
-      panStartX: panX,
-      panStartY: panY,
-    });
-  }
+  }, [dragging, resizing, panning, marquee, handleMouseMove, handleMouseUp]);
 
   // --- Zoom (scroll wheel, toward cursor) ---
   useEffect(() => {
@@ -173,6 +299,14 @@ export default function MoodboardView({
     backgroundSize: `${dotSpacing}px ${dotSpacing}px`,
     backgroundPosition: `${panX}px ${panY}px`,
   };
+
+  // Marquee rect for rendering
+  const marqueeStyle = marquee ? {
+    left: Math.min(marquee.startX, marquee.currentX),
+    top: Math.min(marquee.startY, marquee.currentY),
+    width: Math.abs(marquee.currentX - marquee.startX),
+    height: Math.abs(marquee.currentY - marquee.startY),
+  } : null;
 
   return (
     <div className="moodboard-view">
@@ -207,10 +341,13 @@ export default function MoodboardView({
           )}
           {images.map((img) => {
             const loaded = loadedImages.find((l) => l.id === img.id);
+            const isSelected = selectedIds.has(img.id);
+            const isDragging = dragging?.items.some((d) => d.id === img.id) ?? false;
             return (
               <div
                 key={img.id}
-                className={`moodboard-view__item ${dragging?.id === img.id ? "moodboard-view__item--dragging" : ""}`}
+                data-img-id={img.id}
+                className={`moodboard-view__item ${isDragging ? "moodboard-view__item--dragging" : ""} ${isSelected ? "moodboard-view__item--selected" : ""}`}
                 style={{
                   left: img.x,
                   top: img.y,
@@ -240,6 +377,12 @@ export default function MoodboardView({
               </div>
             );
           })}
+          {marqueeStyle && (
+            <div
+              className="moodboard-view__marquee"
+              style={marqueeStyle}
+            />
+          )}
         </div>
       </div>
 

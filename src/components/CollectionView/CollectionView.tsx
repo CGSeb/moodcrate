@@ -25,7 +25,7 @@ interface CollectionViewProps {
   onDelete: () => void;
   tags: Tag[];
   imageTags: Record<string, string[]>;
-  onAddTag: (name: string, parentId?: string | null) => void;
+  onAddTag: (name: string, parentId?: string | null) => boolean;
   onDeleteTag: (tagId: string) => void;
   onSetTagParent: (tagId: string, newParentId: string | null) => void;
   onAddTagToImage: (imagePath: string, tagId: string) => void;

@@ -6,6 +6,7 @@ interface NameDialogProps {
   open: boolean;
   title: string;
   placeholder?: string;
+  validate?: (name: string) => string | null;
   onConfirm: (name: string) => void;
   onCancel: () => void;
 }
@@ -14,15 +15,18 @@ export default function NameDialog({
   open,
   title,
   placeholder = "Enter a name…",
+  validate,
   onConfirm,
   onCancel,
 }: NameDialogProps) {
   const [value, setValue] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (open) {
       setValue("");
+      setError(null);
       setTimeout(() => inputRef.current?.focus(), 0);
     }
   }, [open]);
@@ -32,7 +36,15 @@ export default function NameDialog({
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const trimmed = value.trim();
-    if (trimmed) onConfirm(trimmed);
+    if (!trimmed) return;
+    if (validate) {
+      const msg = validate(trimmed);
+      if (msg) {
+        setError(msg);
+        return;
+      }
+    }
+    onConfirm(trimmed);
   }
 
   return (
@@ -47,12 +59,13 @@ export default function NameDialog({
         <form onSubmit={handleSubmit}>
           <input
             ref={inputRef}
-            className="name-dialog__input"
+            className={`name-dialog__input ${error ? "name-dialog__input--error" : ""}`}
             type="text"
             value={value}
-            onChange={(e) => setValue(e.target.value)}
+            onChange={(e) => { setValue(e.target.value); setError(null); }}
             placeholder={placeholder}
           />
+          {error && <div className="name-dialog__error">{error}</div>}
           <div className="name-dialog__actions">
             <button
               type="button"

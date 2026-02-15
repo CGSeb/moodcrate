@@ -11,7 +11,7 @@ interface TagSidebarProps {
   tags: Tag[];
   filterTagIds: Set<string>;
   onToggleFilter: (tagId: string) => void;
-  onAddTag: (name: string, parentId?: string | null) => void;
+  onAddTag: (name: string, parentId?: string | null) => boolean;
   onDeleteTag: (tagId: string) => void;
   onSetTagParent: (tagId: string, newParentId: string | null) => void;
 }
@@ -255,6 +255,13 @@ export default function TagSidebar({
         open={showCreateDialog}
         title={createParentId ? `New sub-tag of "${tags.find((t) => t.id === createParentId)?.name}"` : "New Tag"}
         placeholder="Tag name..."
+        validate={(name) => {
+          const nameLower = name.toLowerCase();
+          const duplicate = tags.some(
+            (t) => t.name.toLowerCase() === nameLower && (t.parentId ?? null) === createParentId
+          );
+          return duplicate ? "A tag with this name already exists" : null;
+        }}
         onConfirm={(name) => {
           onAddTag(name, createParentId);
           setShowCreateDialog(false);

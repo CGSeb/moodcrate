@@ -106,9 +106,16 @@ function App() {
     });
   }
 
-  function handleAddTag(name: string, parentId?: string | null) {
+  function handleAddTag(name: string, parentId?: string | null): boolean {
+    const normalizedParent = parentId ?? null;
+    const nameLower = name.trim().toLowerCase();
+    const duplicate = tags.some(
+      (t) => t.name.toLowerCase() === nameLower && (t.parentId ?? null) === normalizedParent
+    );
+    if (duplicate) return false;
     const id = crypto.randomUUID();
-    setTags((prev) => [...prev, { id, name, parentId: parentId ?? null }]);
+    setTags((prev) => [...prev, { id, name, parentId: normalizedParent }]);
+    return true;
   }
 
   function handleDeleteTag(tagId: string) {

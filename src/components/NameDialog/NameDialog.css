@@ -58,8 +58,18 @@
   outline: none;
 }
 
+.name-dialog__input--error {
+  border-color: #e85a5a;
+}
+
 .name-dialog__input:focus {
   border-color: #5a7de8;
+}
+
+.name-dialog__error {
+  color: #e85a5a;
+  font-size: 12px;
+  margin-top: 6px;
 }
 
 .name-dialog__input::placeholder {

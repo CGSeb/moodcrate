@@ -71,6 +71,11 @@
   outline-offset: -2px;
 }
 
+.moodboard-view__item--selected {
+  outline: 2px solid #5a7de8;
+  outline-offset: -2px;
+}
+
 .moodboard-view__item--dragging {
   cursor: grabbing;
   outline: 2px solid #5a7de8;
@@ -135,4 +140,11 @@
 
 .moodboard-view__item:hover .moodboard-view__item-resize {
   opacity: 1;
+}
+
+.moodboard-view__marquee {
+  position: absolute;
+  border: 1px solid #5a7de8;
+  background: rgba(90, 125, 232, 0.15);
+  pointer-events: none;
 }
