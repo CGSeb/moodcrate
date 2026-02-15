@@ -1,6 +1,6 @@
 [package]
 name = "moodcrate"
-version = "0.1.0"
+version = "1.0.0"
 description = "Visual reference manager and moodboard creator for artists"
 authors = ["Sebastien"]
 edition = "2021"

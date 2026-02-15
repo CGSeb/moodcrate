@@ -239,6 +239,9 @@ export default function Sidebar({
             </div>
           </nav>
         )}
+        <div className="sidebar__version">
+          {!collapsed && "v1.0.0"}
+        </div>
       </aside>
 
       <NameDialog
