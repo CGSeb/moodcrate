@@ -258,7 +258,7 @@ export default function TagSidebar({
         validate={(name) => {
           const nameLower = name.toLowerCase();
           const duplicate = tags.some(
-            (t) => t.name.toLowerCase() === nameLower && (t.parentId ?? null) === createParentId
+            (t) => t.name.toLowerCase() === nameLower
           );
           return duplicate ? "A tag with this name already exists" : null;
         }}

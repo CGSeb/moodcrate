@@ -110,7 +110,7 @@ function App() {
     const normalizedParent = parentId ?? null;
     const nameLower = name.trim().toLowerCase();
     const duplicate = tags.some(
-      (t) => t.name.toLowerCase() === nameLower && (t.parentId ?? null) === normalizedParent
+      (t) => t.name.toLowerCase() === nameLower
     );
     if (duplicate) return false;
     const id = crypto.randomUUID();
