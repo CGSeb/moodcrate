@@ -11,6 +11,7 @@
     "core:window:allow-is-maximized",
     "opener:default",
     "dialog:default",
-    "clipboard-manager:allow-read-image"
+    "clipboard-manager:allow-read-image",
+    "window-state:default"
   ]
 }

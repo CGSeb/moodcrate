@@ -26,4 +26,5 @@ tauri-plugin-dialog = "2.6.0"
 tauri-plugin-clipboard-manager = "2"
 base64 = "0.22.1"
 image = { version = "0.25", default-features = false, features = ["png"] }
+tauri-plugin-window-state = "2.4.1"
 

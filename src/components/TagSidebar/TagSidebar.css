@@ -160,8 +160,14 @@
   flex-shrink: 0;
 }
 
-.tag-sidebar__tag-name {
+.tag-sidebar__name-wrapper {
   flex: 1;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.tag-sidebar__tag-name {
+  display: block;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

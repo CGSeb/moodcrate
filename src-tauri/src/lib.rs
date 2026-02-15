@@ -168,6 +168,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_clipboard_manager::init())
+        .plugin(tauri_plugin_window_state::Builder::default().build())
         .invoke_handler(tauri::generate_handler![list_images, read_image, import_files, save_clipboard_image, delete_image])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

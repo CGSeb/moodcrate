@@ -218,7 +218,11 @@ export default function TagSidebar({
                         <span className="tag-sidebar__expand-spacer" />
                       )}
                       <GripVertical size={12} className="tag-sidebar__grip" />
-                      <span className="tag-sidebar__tag-name">{tag.name}</span>
+                      <span className="tag-sidebar__name-wrapper">
+                        <Tooltip text={tag.name}>
+                          <span className="tag-sidebar__tag-name">{tag.name}</span>
+                        </Tooltip>
+                      </span>
                       <Tooltip text="Add sub-tag">
                         <button
                           className="tag-sidebar__child-btn"

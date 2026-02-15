@@ -4,7 +4,7 @@ A desktop app for artists to gather, label, categorize visual references and cre
 
 Built with **Tauri v2** (Rust) + **React 19** + **TypeScript** + **Vite**.
 
-<!-- Screenshot: app overview -->
+![MoodCrate Home](img/HomePage.jpg)
 
 ## Features
 
@@ -12,7 +12,7 @@ Built with **Tauri v2** (Rust) + **React 19** + **TypeScript** + **Vite**.
 
 Organize your visual references into collections — folders of images you can browse, tag, and filter.
 
-<!-- Screenshot: collection view -->
+![MoodCrate Collection](img/Collection.jpg)
 
 - **Import images** via file picker or clipboard paste (copy or reference modes)
 - **Grid view** with adjustable columns per row
@@ -23,19 +23,16 @@ Organize your visual references into collections — folders of images you can b
 
 A hierarchical tagging system to categorize and filter your images.
 
-<!-- Screenshot: tag sidebar -->
-
 - **Create tags** with parent-child nesting (unlimited depth)
 - **Drag-and-drop** tags in the sidebar to reorganize hierarchy
 - **Tag images** directly from the collection grid
 - **Filter by tag** — click the search icon on any tag to show only matching images (includes descendants)
-- **Global duplicate prevention** — tag names are unique across the entire library (case-insensitive)
 
 ### Moodboards
 
 Free-form canvases to arrange your selected references spatially.
 
-<!-- Screenshot: moodboard view -->
+![MoodCrate Mood Board](img/MoodBoard.jpg)
 
 - **Infinite canvas** with pan (middle-click) and zoom (scroll wheel)
 - **Add images** from any collection via the moodboard picker on each image tile
@@ -48,12 +45,14 @@ Free-form canvases to arrange your selected references spatially.
 - **Zoom-to-fit** on open — the view automatically centers and scales to show all images
 - **Dot grid background** for visual reference
 
+### Home & Favorites
+
+- **Home page** with quick-create actions for collections and moodboards
+- **Favorite** any collection or moodboard via the star icon in the sidebar
+- **Favorites overview** on the home page for quick access to starred items
+
 ### Interface
 
-<!-- Screenshot: sidebar -->
-
-- **Custom titlebar** with home navigation
-- **Collapsible sidebar** with collections and moodboards sections
 - **Settings popover** to adjust grid column count
 - **Dark theme** throughout
 
@@ -93,6 +92,12 @@ The built installer will be in `src-tauri/target/release/bundle/`.
 | Icons | lucide-react |
 | Persistence | localStorage |
 | Tauri plugins | dialog, opener, clipboard-manager |
+
+## Next Features
+
+- Image loading improvement (slow in large collections)
+- Add text elements in a moodboard
+- Add multiple images to a moodboard at once
 
 ## License
 

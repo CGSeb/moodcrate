@@ -7,10 +7,12 @@ import {
   Layout,
   ChevronRight,
   Plus,
+  Star,
 } from "lucide-react";
 import { open } from "@tauri-apps/plugin-dialog";
 import type { Moodboard } from "../../App";
 import NameDialog from "../NameDialog/NameDialog";
+import Tooltip from "../Tooltip/Tooltip";
 import "./Sidebar.css";
 
 export interface Collection {
@@ -28,6 +30,8 @@ interface SidebarProps {
   selectedMoodboard: Moodboard | null;
   onSelectMoodboard: (moodboard: Moodboard) => void;
   onHome: () => void;
+  favorites: string[];
+  onToggleFavorite: (id: string) => void;
 }
 
 export default function Sidebar({
@@ -40,6 +44,8 @@ export default function Sidebar({
   selectedMoodboard,
   onSelectMoodboard,
   onHome,
+  favorites,
+  onToggleFavorite,
 }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
@@ -184,7 +190,21 @@ export default function Sidebar({
                         key={col.path}
                         onClick={() => onSelectCollection(col)}
                       >
-                        {col.name}
+                        <span className="sidebar__item-name">{col.name}</span>
+                        <Tooltip text={favorites.includes(col.path) ? "Remove from favorites" : "Add to favorites"}>
+                          <span
+                            className={`sidebar__star ${favorites.includes(col.path) ? "sidebar__star--active" : ""}`}
+                            role="button"
+                            tabIndex={0}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onToggleFavorite(col.path);
+                            }}
+                            aria-label="Toggle favorite"
+                          >
+                            <Star size={12} fill={favorites.includes(col.path) ? "currentColor" : "none"} />
+                          </span>
+                        </Tooltip>
                       </li>
                     ))
                   )}
@@ -230,7 +250,21 @@ export default function Sidebar({
                         key={mb.id}
                         onClick={() => onSelectMoodboard(mb)}
                       >
-                        {mb.name}
+                        <span className="sidebar__item-name">{mb.name}</span>
+                        <Tooltip text={favorites.includes(mb.id) ? "Remove from favorites" : "Add to favorites"}>
+                          <span
+                            className={`sidebar__star ${favorites.includes(mb.id) ? "sidebar__star--active" : ""}`}
+                            role="button"
+                            tabIndex={0}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onToggleFavorite(mb.id);
+                            }}
+                            aria-label="Toggle favorite"
+                          >
+                            <Star size={12} fill={favorites.includes(mb.id) ? "currentColor" : "none"} />
+                          </span>
+                        </Tooltip>
                       </li>
                     ))
                   )}

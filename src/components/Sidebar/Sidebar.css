@@ -109,6 +109,8 @@
 }
 
 .sidebar__item {
+  display: flex;
+  align-items: center;
   padding: 6px 14px 6px 32px;
   font-size: 13px;
   color: #aaa;
@@ -119,6 +121,38 @@
 .sidebar__item:hover {
   background-color: #2a2a2a;
   color: #fff;
+}
+
+.sidebar__item-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar__star {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  border-radius: 3px;
+  color: #555;
+  opacity: 0;
+  transition: opacity 0.1s, color 0.1s;
+  flex-shrink: 0;
+}
+
+.sidebar__item:hover .sidebar__star {
+  opacity: 1;
+}
+
+.sidebar__star:hover {
+  color: #e2b340;
+}
+
+.sidebar__star--active {
+  opacity: 1;
+  color: #e2b340;
 }
 
 .sidebar__item--active {

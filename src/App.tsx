@@ -5,6 +5,7 @@ import CollectionView from "./components/CollectionView/CollectionView";
 import MoodboardView from "./components/MoodboardView/MoodboardView";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import { wouldCreateCycle } from "./utils/tagTree";
+import HomePage from "./components/HomePage/HomePage";
 import "./App.css";
 
 export interface Tag {
@@ -35,6 +36,13 @@ function App() {
   const [moodboardImages, setMoodboardImages] = useLocalStorage<Record<string, MoodboardImage[]>>("moodboardImages", {});
   const [tags, setTags] = useLocalStorage<Tag[]>("tags", []);
   const [imageTags, setImageTags] = useLocalStorage<Record<string, string[]>>("imageTags", {});
+  const [favorites, setFavorites] = useLocalStorage<string[]>("favorites", []);
+
+  function handleToggleFavorite(id: string) {
+    setFavorites((prev) =>
+      prev.includes(id) ? prev.filter((f) => f !== id) : [...prev, id]
+    );
+  }
 
   function handleDeleteCollection() {
     if (!selectedCollection) return;
@@ -210,6 +218,8 @@ function App() {
             setSelectedCollection(null);
             setSelectedMoodboard(null);
           }}
+          favorites={favorites}
+          onToggleFavorite={handleToggleFavorite}
         />
         <main className="main-content">
           {selectedCollection ? (
@@ -236,7 +246,25 @@ function App() {
               onUpdateImage={(imageId: string, updates: Partial<Pick<MoodboardImage, "x" | "y" | "width">>) => handleUpdateMoodboardImage(selectedMoodboard.id, imageId, updates)}
             />
           ) : (
-            <h1>Moodcrate</h1>
+            <HomePage
+              collections={collections}
+              moodboards={moodboards}
+              favorites={favorites}
+              onAddCollection={(col) => {
+                setCollections((prev) => [...prev, col]);
+                setSelectedCollection(col);
+                setSelectedMoodboard(null);
+              }}
+              onAddMoodboard={handleAddMoodboard}
+              onSelectCollection={(col) => {
+                setSelectedCollection(col);
+                setSelectedMoodboard(null);
+              }}
+              onSelectMoodboard={(mb) => {
+                setSelectedMoodboard(mb);
+                setSelectedCollection(null);
+              }}
+            />
           )}
         </main>
       </div>

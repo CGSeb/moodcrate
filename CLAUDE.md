@@ -28,7 +28,8 @@ Moodcrate/
       tagTree.ts                #   Tag hierarchy helpers (flatten, children map, cycle detection)
     components/
       Titlebar/                 #   Custom window titlebar
-      Sidebar/                  #   Navigation sidebar (collections + moodboards)
+      Sidebar/                  #   Navigation sidebar (collections + moodboards + favorites)
+      HomePage/                 #   Home page (favorites, create actions)
       CollectionView/           #   Image grid for a collection
       MoodboardView/            #   Moodboard canvas (pan, zoom, box-select, multi-drag)
       ImageViewer/              #   Full-screen image viewer overlay
@@ -71,6 +72,8 @@ Moodcrate/
 - Create, list, select, and delete moodboards
 - Custom window titlebar with home navigation
 - Collapsible sidebar with collections and moodboards sections
+- Favorite collections and moodboards (star icon in sidebar, shown on home page)
+- Home page with quick-create actions and favorites overview
 
 ### Planned
 - Search and filter by categories, colors
