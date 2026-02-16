@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Trash2, X } from "lucide-react";
-import { invoke } from "@tauri-apps/api/core";
+import { convertFileSrc } from "@tauri-apps/api/core";
 import type { Moodboard, MoodboardImage } from "../../App";
 import ConfirmDialog from "../ConfirmDialog/ConfirmDialog";
 import "./MoodboardView.css";
@@ -76,28 +76,9 @@ export default function MoodboardView({
   }
 
   useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      const results: LoadedImage[] = [];
-      for (const img of images) {
-        const already = loadedImages.find((l) => l.id === img.id);
-        if (already) {
-          results.push(already);
-          continue;
-        }
-        try {
-          const dataUrl = await invoke<string>("read_image", { path: img.path });
-          if (cancelled) return;
-          results.push({ id: img.id, dataUrl });
-        } catch {
-          // skip images that fail to load
-        }
-      }
-      if (!cancelled) setLoadedImages(results);
-    }
-    load();
-    return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    setLoadedImages(
+      images.map((img) => ({ id: img.id, dataUrl: convertFileSrc(img.path) }))
+    );
   }, [images]);
 
   // Zoom-to-fit when opening a moodboard or after images finish loading

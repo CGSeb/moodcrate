@@ -274,7 +274,7 @@ export default function Sidebar({
           </nav>
         )}
         <div className="sidebar__version">
-          {!collapsed && "v1.0.0"}
+          {!collapsed && "v1.1.0"}
         </div>
       </aside>
 

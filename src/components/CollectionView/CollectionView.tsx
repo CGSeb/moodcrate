@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { Trash2, ImagePlus, Import, ClipboardPaste, Settings, Plus } from "lucide-react";
-import { invoke } from "@tauri-apps/api/core";
+import { Trash2, ImagePlus, Import, ClipboardPaste, Settings, Plus, RotateCcw } from "lucide-react";
+import { invoke, convertFileSrc } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import { readImage } from "@tauri-apps/plugin-clipboard-manager";
 import type { Collection } from "../Sidebar/Sidebar";
@@ -64,6 +64,7 @@ export default function CollectionView({
   const [rememberedImportMode, setRememberedImportMode] = useLocalStorage<ImportMode | null>("importMode", null);
   const [columnsPerRow, setColumnsPerRow] = useLocalStorage<number>("columnsPerRow", 0);
   const [showSettings, setShowSettings] = useState(false);
+  const [thumbProgress, setThumbProgress] = useState<{ loaded: number; total: number } | null>(null);
   const pickerRef = useRef<HTMLDivElement>(null);
   const settingsRef = useRef<HTMLDivElement>(null);
 
@@ -77,13 +78,30 @@ export default function CollectionView({
 
         const entries: ImageEntry[] = paths.map((p) => ({ path: p, dataUrl: null }));
         setImages(entries);
+        setThumbProgress({ loaded: 0, total: paths.length });
 
-        const results = await Promise.all(
-          paths.map((p) => invoke<string>("read_image", { path: p }).catch(() => null))
-        );
-        if (cancelled) return;
-
-        setImages(paths.map((p, i) => ({ path: p, dataUrl: results[i] })));
+        // Load thumbnails in batches to avoid IPC flooding
+        const BATCH_SIZE = 20;
+        const loaded = new Array<string | null>(paths.length).fill(null);
+        for (let i = 0; i < paths.length; i += BATCH_SIZE) {
+          if (cancelled) return;
+          const batch = paths.slice(i, i + BATCH_SIZE);
+          const results = await Promise.all(
+            batch.map((p) =>
+              invoke<string>("generate_thumbnail", { path: p, maxSize: 400 })
+                .then((thumbPath) => convertFileSrc(thumbPath))
+                .catch(() => null)
+            )
+          );
+          if (cancelled) return;
+          for (let j = 0; j < results.length; j++) {
+            loaded[i + j] = results[j];
+          }
+          const loadedCount = Math.min(i + BATCH_SIZE, paths.length);
+          setThumbProgress({ loaded: loadedCount, total: paths.length });
+          setImages(paths.map((p, idx) => ({ path: p, dataUrl: loaded[idx] })));
+        }
+        setThumbProgress(null);
       } catch {
         setImages([]);
       }
@@ -197,19 +215,9 @@ export default function CollectionView({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handlePasteFromClipboard]);
 
-  async function handleOpenViewer(path: string) {
+  function handleOpenViewer(path: string) {
     setViewerPath(path);
-    const cached = images.find((img) => img.path === path);
-    if (cached?.dataUrl) {
-      setViewerSrc(cached.dataUrl);
-      return;
-    }
-    try {
-      const dataUrl = await invoke<string>("read_image", { path });
-      setViewerSrc(dataUrl);
-    } catch {
-      setViewerSrc(null);
-    }
+    setViewerSrc(convertFileSrc(path));
   }
 
   function handleCloseViewer() {
@@ -336,6 +344,17 @@ export default function CollectionView({
                   value={columnsPerRow}
                   onChange={(e) => setColumnsPerRow(Number(e.target.value))}
                 />
+                <button
+                  className="collection-view__settings-clear-cache"
+                  onClick={async () => {
+                    await invoke("clear_collection_cache", { path: collection.path });
+                    setRefreshKey((k) => k + 1);
+                    setShowSettings(false);
+                  }}
+                >
+                  <RotateCcw size={13} />
+                  Clear thumbnail cache
+                </button>
               </div>
             )}
           </div>
@@ -350,6 +369,14 @@ export default function CollectionView({
       </div>
 
       <div className="collection-view__body">
+        {thumbProgress ? (
+          <div className="collection-view__loading">
+            <div className="collection-view__loading-spinner" />
+            <span className="collection-view__loading-text">
+              Caching thumbnails... {thumbProgress.loaded}/{thumbProgress.total}
+            </span>
+          </div>
+        ) : (<>
         <div className="collection-view__grid-area">
           <div
             className="collection-view__grid"
@@ -464,6 +491,7 @@ export default function CollectionView({
           onDeleteTag={onDeleteTag}
           onSetTagParent={onSetTagParent}
         />
+        </>)}
       </div>
 
       {viewerPath && viewerSrc && (

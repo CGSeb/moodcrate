@@ -12,7 +12,7 @@
 | Frontend | **React 19** + TypeScript + Vite |
 | State | **localStorage** (via `useLocalStorage` hook) |
 | Icons | **lucide-react** |
-| Tauri plugins | `dialog`, `opener`, `clipboard-manager` |
+| Tauri plugins | `dialog`, `opener`, `clipboard-manager`, `window-state` |
 
 ## Architecture
 
@@ -43,6 +43,7 @@ Moodcrate/
       lib.rs                    #   Tauri commands and setup
       main.rs                   #   Entry point
     Cargo.toml                  #   Rust dependencies
+    nsis-hooks.nsi              #   NSIS uninstaller hooks (cleanup app data)
     tauri.conf.json             #   Tauri configuration
     capabilities/               #   Tauri permission capabilities
     icons/                      #   App icons
@@ -74,10 +75,15 @@ Moodcrate/
 - Collapsible sidebar with collections and moodboards sections
 - Favorite collections and moodboards (star icon in sidebar, shown on home page)
 - Home page with quick-create actions and favorites overview
+- Thumbnail system: WebP thumbnails cached in `<app_data_dir>/thumbnails/`, keyed by path + mtime + size
+- Asset protocol: images loaded directly from disk via `convertFileSrc` (no base64/IPC overhead)
+- Async thumbnail generation (`spawn_blocking`) — non-blocking UI during cache build
+- Batched thumbnail loading (20 at a time) with centered progress indicator
+- Clear collection thumbnail cache from settings popover
+- NSIS uninstaller hook cleans up app data (thumbnail cache) on uninstall
 
 ### Planned
 - Search and filter by categories, colors
-- Image thumbnails and metadata processing
 
 ## Environment
 

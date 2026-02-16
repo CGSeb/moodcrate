@@ -17,6 +17,33 @@
   color: #888;
 }
 
+.collection-view__loading {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+.collection-view__loading-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid #333;
+  border-top-color: #5a7de8;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.collection-view__loading-text {
+  font-size: 13px;
+  color: #888;
+}
+
 .collection-view__toolbar {
   display: flex;
   align-items: center;
@@ -73,6 +100,26 @@
 .collection-view__settings-slider {
   width: 100%;
   accent-color: #5a7de8;
+}
+
+.collection-view__settings-clear-cache {
+  all: unset;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #888;
+  margin-top: 10px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.collection-view__settings-clear-cache:hover {
+  background: #2a2a2a;
+  color: #ccc;
 }
 
 .collection-view__delete-btn {

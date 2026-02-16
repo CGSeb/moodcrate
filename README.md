@@ -16,7 +16,9 @@ Organize your visual references into collections — folders of images you can b
 
 - **Import images** via file picker or clipboard paste (copy or reference modes)
 - **Grid view** with adjustable columns per row
-- **Full-screen image viewer** for detailed inspection
+- **Thumbnail caching** — images are resized to WebP thumbnails on first load, cached on disk for instant subsequent loads
+- **Full-screen image viewer** at original resolution
+- **Clear cache** per collection from the settings popover
 - **Delete images** from collections
 
 ### Tags
@@ -51,10 +53,17 @@ Free-form canvases to arrange your selected references spatially.
 - **Favorite** any collection or moodboard via the star icon in the sidebar
 - **Favorites overview** on the home page for quick access to starred items
 
+### Performance
+
+- **Asset protocol** — images loaded directly from disk by the webview, no base64/IPC overhead
+- **Async thumbnail generation** — caching runs in background threads, UI stays responsive
+- **Batched loading** — thumbnails load in batches of 20 with a progress indicator
+
 ### Interface
 
-- **Settings popover** to adjust grid column count
+- **Settings popover** to adjust grid column count and clear thumbnail cache
 - **Dark theme** throughout
+- **NSIS uninstaller** cleans up app data and thumbnail cache on uninstall
 
 ## Installation
 
@@ -91,11 +100,11 @@ The built installer will be in `src-tauri/target/release/bundle/`.
 | Bundler | Vite |
 | Icons | lucide-react |
 | Persistence | localStorage |
-| Tauri plugins | dialog, opener, clipboard-manager |
+| Image processing | image crate (Rust) — decode, resize, WebP encode |
+| Tauri plugins | dialog, opener, clipboard-manager, window-state |
 
 ## Next Features
 
-- Image loading improvement (slow in large collections)
 - Add text elements in a moodboard
 - Add multiple images to a moodboard at once
 
