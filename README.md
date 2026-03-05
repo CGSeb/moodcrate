@@ -37,8 +37,9 @@ Free-form canvases to arrange your selected references spatially.
 ![MoodCrate Mood Board](img/MoodBoard.jpg)
 
 - **Infinite canvas** with pan (middle-click) and zoom (scroll wheel)
-- **Add images** from any collection via the moodboard picker on each image tile
-- **Create moodboards on the fly** — the "New moodboard" option in the picker creates a board, adds the image, and navigates to it
+- **Add a single image** from any collection via the moodboard picker on each image tile — moodboards that already contain the image are indicated with a checkmark
+- **Batch-add multiple images** — select images with the checkboxes, then use the batch action bar to add them all to an existing or new moodboard at once; multiple images are placed in a grid layout on the canvas
+- **Create moodboards on the fly** — the "New moodboard" option in the picker creates a board, adds the image(s), and navigates to it
 - **Freely arrange** images by dragging them on the canvas
 - **Resize images** using the corner handle
 - **Box-select** multiple images with a marquee (left-click drag on empty canvas)
@@ -106,7 +107,6 @@ The built installer will be in `src-tauri/target/release/bundle/`.
 ## Next Features
 
 - Add text elements in a moodboard
-- Add multiple images to a moodboard at once
 
 ## License
 

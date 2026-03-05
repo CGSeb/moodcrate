@@ -328,3 +328,145 @@
 .collection-view__mb-picker-item--new:hover {
   color: #fff;
 }
+
+/* Tile checkbox */
+.collection-view__tile-checkbox {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.6);
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  z-index: 3;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.collection-view__tile:hover .collection-view__tile-checkbox,
+.collection-view__tile--selected .collection-view__tile-checkbox {
+  opacity: 1;
+}
+
+.collection-view__tile-checkbox--checked {
+  background: #5a7de8;
+  border-color: #5a7de8;
+  opacity: 1;
+}
+
+.collection-view__tile-checkbox--checked::after {
+  content: "";
+  display: block;
+  width: 5px;
+  height: 9px;
+  border: 2px solid #fff;
+  border-top: none;
+  border-left: none;
+  transform: rotate(45deg) translate(-1px, -1px);
+}
+
+/* Selected tile highlight */
+.collection-view__tile--selected {
+  outline: 2px solid #5a7de8;
+  outline-offset: -2px;
+}
+
+.collection-view__tile--selected::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(90, 125, 232, 0.2);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Batch action bar */
+.collection-view__batch-bar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: #1a2035;
+  border: 1px solid #2e3a5a;
+  border-radius: 8px;
+  margin-top: 8px;
+  gap: 12px;
+}
+
+.collection-view__batch-count {
+  font-size: 13px;
+  color: #aaa;
+}
+
+.collection-view__batch-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.collection-view__batch-btn {
+  all: unset;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #fff;
+  background: #5a7de8;
+  padding: 6px 12px;
+  border-radius: 6px;
+}
+
+.collection-view__batch-btn:hover {
+  background: #6b8df0;
+}
+
+.collection-view__batch-clear {
+  all: unset;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 6px;
+  border-radius: 6px;
+  color: #888;
+}
+
+.collection-view__batch-clear:hover {
+  background: #2a2a2a;
+  color: #ccc;
+}
+
+.collection-view__batch-mb-picker {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 0;
+  min-width: 160px;
+  background: #1e1e1e;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.5);
+  z-index: 10;
+}
+
+/* Already-in-moodboard indicator for single picker */
+.collection-view__mb-picker-item--added {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #555;
+}
+
+.collection-view__mb-picker-item--added:hover {
+  color: #888;
+}
+

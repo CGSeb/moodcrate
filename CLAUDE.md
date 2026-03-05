@@ -65,7 +65,8 @@ Moodcrate/
 - Tag images with custom labels; filter images by tags (with descendant filtering)
 - Duplicate tag name prevention (global, case-insensitive)
 - Moodboard canvas with pan (middle-click), zoom (scroll wheel), and dot grid background
-- Add images to moodboards from collections
+- Add single image to a moodboard from collection (per-tile ImagePlus button + dropdown picker)
+- Multi-select images in a collection (checkbox on hover) and batch-add to an existing or new moodboard via a batch action bar; images placed in a 4-column grid on the canvas
 - Arrange images freely on moodboard canvas (drag to move, resize handle)
 - Box-select multiple images on moodboard (marquee selection)
 - Multi-drag: move all selected images together
