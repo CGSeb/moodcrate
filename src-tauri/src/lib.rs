@@ -164,6 +164,35 @@ fn delete_image(path: String) -> Result<(), String> {
     fs::remove_file(file).map_err(|e| e.to_string())
 }
 
+fn tags_data_path(app_handle: &tauri::AppHandle) -> Result<PathBuf, String> {
+    let dir = app_handle
+        .path()
+        .document_dir()
+        .or_else(|_| app_handle.path().app_local_data_dir())
+        .map_err(|e| e.to_string())?;
+    let app_dir = dir.join("Moodcrate");
+    if !app_dir.exists() {
+        fs::create_dir_all(&app_dir).map_err(|e| e.to_string())?;
+    }
+    Ok(app_dir.join("tags.json"))
+}
+
+#[tauri::command]
+fn load_tags_data(app_handle: tauri::AppHandle) -> Result<String, String> {
+    let path = tags_data_path(&app_handle)?;
+    if path.is_file() {
+        fs::read_to_string(&path).map_err(|e| e.to_string())
+    } else {
+        Ok(String::new())
+    }
+}
+
+#[tauri::command]
+fn save_tags_data(app_handle: tauri::AppHandle, data: String) -> Result<(), String> {
+    let path = tags_data_path(&app_handle)?;
+    fs::write(&path, data).map_err(|e| e.to_string())
+}
+
 fn thumbnail_cache_dir(app_handle: &tauri::AppHandle) -> Result<PathBuf, String> {
     let data_dir = app_handle.path().app_data_dir().map_err(|e| e.to_string())?;
     let thumb_dir = data_dir.join("thumbnails");
@@ -289,7 +318,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_window_state::Builder::default().build())
-        .invoke_handler(tauri::generate_handler![list_images, read_image, import_files, save_clipboard_image, delete_image, generate_thumbnail, clear_collection_cache])
+        .invoke_handler(tauri::generate_handler![list_images, read_image, import_files, save_clipboard_image, delete_image, generate_thumbnail, clear_collection_cache, load_tags_data, save_tags_data])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
