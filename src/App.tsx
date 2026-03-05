@@ -29,12 +29,23 @@ export interface MoodboardImage {
   height: number;
 }
 
+export interface MoodboardText {
+  id: string;
+  text: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  fontSize?: number;
+}
+
 function App() {
   const [collections, setCollections] = useLocalStorage<Collection[]>("collections", []);
   const [selectedCollection, setSelectedCollection] = useState<Collection | null>(null);
   const [moodboards, setMoodboards] = useLocalStorage<Moodboard[]>("moodboards", []);
   const [selectedMoodboard, setSelectedMoodboard] = useState<Moodboard | null>(null);
   const [moodboardImages, setMoodboardImages] = useLocalStorage<Record<string, MoodboardImage[]>>("moodboardImages", {});
+  const [moodboardTexts, setMoodboardTexts] = useLocalStorage<Record<string, MoodboardText[]>>("moodboardTexts", {});
   const { tags, setTags, imageTags, setImageTags } = useTagsStorage();
   const [favorites, setFavorites] = useLocalStorage<string[]>("favorites", []);
   const [pendingMoodboardSelection, setPendingMoodboardSelection] = useState<string[]>([]);
@@ -134,6 +145,11 @@ function App() {
       delete next[selectedMoodboard.id];
       return next;
     });
+    setMoodboardTexts((prev) => {
+      const next = { ...prev };
+      delete next[selectedMoodboard.id];
+      return next;
+    });
     setSelectedMoodboard(null);
   }
 
@@ -179,6 +195,37 @@ function App() {
         [moodboardId]: current.map((img) =>
           img.id === imageId ? { ...img, ...updates } : img
         ),
+      };
+    });
+  }
+
+  function handleAddTextToMoodboard(moodboardId: string, id: string, x: number, y: number) {
+    const entry: MoodboardText = { id, text: "", x, y, width: 200, height: 80, fontSize: 14 };
+    setMoodboardTexts((prev) => ({
+      ...prev,
+      [moodboardId]: [...(prev[moodboardId] || []), entry],
+    }));
+  }
+
+  function handleRemoveTextFromMoodboard(moodboardId: string, textId: string) {
+    setMoodboardTexts((prev) => {
+      const current = prev[moodboardId] || [];
+      const filtered = current.filter((t) => t.id !== textId);
+      if (filtered.length === current.length) return prev;
+      const next = { ...prev };
+      if (filtered.length > 0) next[moodboardId] = filtered;
+      else delete next[moodboardId];
+      return next;
+    });
+  }
+
+  function handleUpdateMoodboardText(moodboardId: string, textId: string, updates: Partial<Pick<MoodboardText, "x" | "y" | "width" | "height" | "text" | "fontSize">>) {
+    setMoodboardTexts((prev) => {
+      const current = prev[moodboardId];
+      if (!current) return prev;
+      return {
+        ...prev,
+        [moodboardId]: current.map((t) => t.id === textId ? { ...t, ...updates } : t),
       };
     });
   }
@@ -298,9 +345,13 @@ function App() {
             <MoodboardView
               moodboard={selectedMoodboard}
               images={moodboardImages[selectedMoodboard.id] || []}
+              texts={moodboardTexts[selectedMoodboard.id] || []}
               onDelete={handleDeleteMoodboard}
               onRemoveImage={(imageId: string) => handleRemoveImageFromMoodboard(selectedMoodboard.id, imageId)}
               onUpdateImage={(imageId: string, updates: Partial<Pick<MoodboardImage, "x" | "y" | "width">>) => handleUpdateMoodboardImage(selectedMoodboard.id, imageId, updates)}
+              onAddText={(id: string, x: number, y: number) => handleAddTextToMoodboard(selectedMoodboard.id, id, x, y)}
+              onRemoveText={(textId: string) => handleRemoveTextFromMoodboard(selectedMoodboard.id, textId)}
+              onUpdateText={(textId: string, updates: Partial<Pick<MoodboardText, "x" | "y" | "width" | "height" | "text" | "fontSize">>) => handleUpdateMoodboardText(selectedMoodboard.id, textId, updates)}
               initialSelectedIds={pendingMoodboardSelection}
               onConsumeSelection={() => setPendingMoodboardSelection([])}
             />

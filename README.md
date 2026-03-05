@@ -47,6 +47,7 @@ Free-form canvases to arrange your selected references spatially.
 - **Shift+click** to toggle individual image selection
 - **Zoom-to-fit** on open — the view automatically centers and scales to show all images
 - **Dot grid background** for visual reference
+- **Text labels** — add free-form text boxes anywhere on the canvas; supports Markdown rendering (headings, bold, italic, lists, code, blockquotes); double-click to edit with a formatting toolbar (font size, H1, H2, bullet list); resize freely; move and select alongside images
 
 ### Home & Favorites
 
@@ -101,12 +102,9 @@ The built installer will be in `src-tauri/target/release/bundle/`.
 | Bundler | Vite |
 | Icons | lucide-react |
 | Persistence | localStorage |
+| Markdown | marked |
 | Image processing | image crate (Rust) — decode, resize, WebP encode |
 | Tauri plugins | dialog, opener, clipboard-manager, window-state |
-
-## Next Features
-
-- Add text elements in a moodboard
 
 ## License
 
