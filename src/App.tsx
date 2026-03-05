@@ -4,6 +4,7 @@ import Sidebar, { Collection } from "./components/Sidebar/Sidebar";
 import CollectionView from "./components/CollectionView/CollectionView";
 import MoodboardView from "./components/MoodboardView/MoodboardView";
 import { useLocalStorage } from "./hooks/useLocalStorage";
+import { useTagsStorage } from "./hooks/useTagsStorage";
 import { wouldCreateCycle } from "./utils/tagTree";
 import HomePage from "./components/HomePage/HomePage";
 import "./App.css";
@@ -34,8 +35,7 @@ function App() {
   const [moodboards, setMoodboards] = useLocalStorage<Moodboard[]>("moodboards", []);
   const [selectedMoodboard, setSelectedMoodboard] = useState<Moodboard | null>(null);
   const [moodboardImages, setMoodboardImages] = useLocalStorage<Record<string, MoodboardImage[]>>("moodboardImages", {});
-  const [tags, setTags] = useLocalStorage<Tag[]>("tags", []);
-  const [imageTags, setImageTags] = useLocalStorage<Record<string, string[]>>("imageTags", {});
+  const { tags, setTags, imageTags, setImageTags } = useTagsStorage();
   const [favorites, setFavorites] = useLocalStorage<string[]>("favorites", []);
 
   function handleToggleFavorite(id: string) {
