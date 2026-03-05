@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { Trash2, ImagePlus, Import, ClipboardPaste, Settings, Plus, RotateCcw } from "lucide-react";
+import { Trash2, ImagePlus, Import, ClipboardPaste, Settings, Plus, RotateCcw, X, Check } from "lucide-react";
 import { invoke, convertFileSrc } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import { readImage } from "@tauri-apps/plugin-clipboard-manager";
@@ -32,8 +32,12 @@ interface CollectionViewProps {
   onAddTagToImage: (imagePath: string, tagId: string) => void;
   onRemoveTagFromImage: (imagePath: string, tagId: string) => void;
   moodboards: Moodboard[];
+  moodboardImages: Record<string, { path: string }[]>;
   onAddImageToMoodboard: (moodboardId: string, imagePath: string) => void;
   onCreateMoodboardWithImage: (name: string, imagePath: string) => void;
+  onAddImagesToMoodboard: (moodboardId: string, imagePaths: string[]) => { added: number; skipped: number };
+  onCreateMoodboardWithImages: (name: string, imagePaths: string[]) => void;
+  onShowToast: (message: string, variant?: "success" | "warning") => void;
 }
 
 export default function CollectionView({
@@ -47,8 +51,12 @@ export default function CollectionView({
   onAddTagToImage,
   onRemoveTagFromImage,
   moodboards,
+  moodboardImages,
   onAddImageToMoodboard,
   onCreateMoodboardWithImage,
+  onAddImagesToMoodboard,
+  onCreateMoodboardWithImages,
+  onShowToast,
 }: CollectionViewProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteImagePath, setDeleteImagePath] = useState<string | null>(null);
@@ -65,8 +73,12 @@ export default function CollectionView({
   const [columnsPerRow, setColumnsPerRow] = useLocalStorage<number>("columnsPerRow", 0);
   const [showSettings, setShowSettings] = useState(false);
   const [thumbProgress, setThumbProgress] = useState<{ loaded: number; total: number } | null>(null);
+  const [selectedPaths, setSelectedPaths] = useState<Set<string>>(new Set());
+  const [batchMbPickerOpen, setBatchMbPickerOpen] = useState(false);
+  const [newMbForBatch, setNewMbForBatch] = useState(false);
   const pickerRef = useRef<HTMLDivElement>(null);
   const settingsRef = useRef<HTMLDivElement>(null);
+  const batchPickerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -134,6 +146,22 @@ export default function CollectionView({
       return () => document.removeEventListener("mousedown", handleClickOutside);
     }
   }, [showSettings]);
+
+  useEffect(() => {
+    setSelectedPaths(new Set());
+  }, [collection.path]);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (batchPickerRef.current && !batchPickerRef.current.contains(e.target as Node)) {
+        setBatchMbPickerOpen(false);
+      }
+    }
+    if (batchMbPickerOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [batchMbPickerOpen]);
 
   useEffect(() => {
     const validIds = new Set(tags.map((t) => t.id));
@@ -388,12 +416,26 @@ export default function CollectionView({
               return (
                 <button
                   key={img.path}
-                  className={`collection-view__tile ${isDragOver ? "collection-view__tile--drag-over" : ""}`}
+                  className={`collection-view__tile${isDragOver ? " collection-view__tile--drag-over" : ""}${selectedPaths.has(img.path) ? " collection-view__tile--selected" : ""}`}
                   onClick={() => handleOpenViewer(img.path)}
                   onDragOver={(e) => handleDragOver(e, img.path)}
                   onDragLeave={(e) => handleDragLeave(e, img.path)}
                   onDrop={(e) => handleDrop(e, img.path)}
                 >
+                  <span
+                    className={`collection-view__tile-checkbox${selectedPaths.has(img.path) ? " collection-view__tile-checkbox--checked" : ""}`}
+                    role="checkbox"
+                    aria-checked={selectedPaths.has(img.path)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedPaths((prev) => {
+                        const next = new Set(prev);
+                        if (next.has(img.path)) next.delete(img.path);
+                        else next.add(img.path);
+                        return next;
+                      });
+                    }}
+                  />
                   {img.dataUrl ? (
                     <img src={img.dataUrl} alt="" className="collection-view__img" />
                   ) : (
@@ -429,19 +471,23 @@ export default function CollectionView({
                   </div>
                   {moodboardPickerPath === img.path && (
                     <div className="collection-view__mb-picker" ref={pickerRef}>
-                      {moodboards.map((mb) => (
-                        <button
-                          key={mb.id}
-                          className="collection-view__mb-picker-item"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onAddImageToMoodboard(mb.id, img.path);
-                            setMoodboardPickerPath(null);
-                          }}
-                        >
-                          {mb.name}
-                        </button>
-                      ))}
+                      {moodboards.map((mb) => {
+                        const alreadyIn = (moodboardImages[mb.id] || []).some((e) => e.path === img.path);
+                        return (
+                          <button
+                            key={mb.id}
+                            className={`collection-view__mb-picker-item${alreadyIn ? " collection-view__mb-picker-item--added" : ""}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onAddImageToMoodboard(mb.id, img.path);
+                              setMoodboardPickerPath(null);
+                            }}
+                          >
+                            {mb.name}
+                            {alreadyIn && <Check size={13} />}
+                          </button>
+                        );
+                      })}
                       <button
                         className="collection-view__mb-picker-item collection-view__mb-picker-item--new"
                         onClick={(e) => {
@@ -494,6 +540,66 @@ export default function CollectionView({
         </>)}
       </div>
 
+      {selectedPaths.size > 0 && (
+        <div className="collection-view__batch-bar">
+          <span className="collection-view__batch-count">
+            {selectedPaths.size} image{selectedPaths.size !== 1 ? "s" : ""} selected
+          </span>
+          <div className="collection-view__batch-actions">
+            <div ref={batchPickerRef} style={{ position: "relative" }}>
+              <button
+                className="collection-view__batch-btn"
+                onClick={() => setBatchMbPickerOpen((v) => !v)}
+              >
+                <ImagePlus size={15} />
+                Add to moodboard
+              </button>
+              {batchMbPickerOpen && (
+                <div className="collection-view__batch-mb-picker">
+                  {moodboards.map((mb) => (
+                    <button
+                      key={mb.id}
+                      className="collection-view__mb-picker-item"
+                      onClick={() => {
+                        const paths = Array.from(selectedPaths);
+                        const { added, skipped } = onAddImagesToMoodboard(mb.id, paths);
+                        setSelectedPaths(new Set());
+                        setBatchMbPickerOpen(false);
+                        const msg = skipped > 0 && added === 0
+                          ? `${skipped} image${skipped !== 1 ? "s" : ""} already in moodboard`
+                          : skipped > 0
+                          ? `${added} added, ${skipped} already in moodboard`
+                          : `${added} image${added !== 1 ? "s" : ""} added to moodboard`;
+                        onShowToast(msg, added > 0 ? "success" : "warning");
+                      }}
+                    >
+                      {mb.name}
+                    </button>
+                  ))}
+                  <button
+                    className="collection-view__mb-picker-item collection-view__mb-picker-item--new"
+                    onClick={() => {
+                      setNewMbForBatch(true);
+                      setBatchMbPickerOpen(false);
+                    }}
+                  >
+                    <Plus size={14} />
+                    New moodboard
+                  </button>
+                </div>
+              )}
+            </div>
+            <button
+              className="collection-view__batch-clear"
+              onClick={() => setSelectedPaths(new Set())}
+              aria-label="Clear selection"
+            >
+              <X size={15} />
+            </button>
+          </div>
+        </div>
+      )}
+
       {viewerPath && viewerSrc && (
         <ImageViewer src={viewerSrc} onClose={handleCloseViewer} />
       )}
@@ -535,6 +641,19 @@ export default function CollectionView({
         }}
         onCancel={() => setNewMbForImage(null)}
       />
+
+      <NameDialog
+        open={newMbForBatch}
+        title="New Moodboard"
+        placeholder="Moodboard name..."
+        onConfirm={(name) => {
+          onCreateMoodboardWithImages(name, Array.from(selectedPaths));
+          setSelectedPaths(new Set());
+          setNewMbForBatch(false);
+        }}
+        onCancel={() => setNewMbForBatch(false)}
+      />
+
     </div>
   );
 }

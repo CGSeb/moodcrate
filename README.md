@@ -106,7 +106,6 @@ The built installer will be in `src-tauri/target/release/bundle/`.
 ## Next Features
 
 - Add text elements in a moodboard
-- Add multiple images to a moodboard at once
 
 ## License
 

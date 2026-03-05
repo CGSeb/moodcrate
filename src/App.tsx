@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Titlebar from "./components/Titlebar/Titlebar";
 import Sidebar, { Collection } from "./components/Sidebar/Sidebar";
 import CollectionView from "./components/CollectionView/CollectionView";
@@ -37,6 +37,14 @@ function App() {
   const [moodboardImages, setMoodboardImages] = useLocalStorage<Record<string, MoodboardImage[]>>("moodboardImages", {});
   const { tags, setTags, imageTags, setImageTags } = useTagsStorage();
   const [favorites, setFavorites] = useLocalStorage<string[]>("favorites", []);
+  const [toast, setToast] = useState<{ message: string; variant: "success" | "warning" } | null>(null);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function showToast(message: string, variant: "success" | "warning" = "success") {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    setToast({ message, variant });
+    toastTimerRef.current = setTimeout(() => setToast(null), 3000);
+  }
 
   function handleToggleFavorite(id: string) {
     setFavorites((prev) =>
@@ -69,6 +77,49 @@ function App() {
       height: 200,
     };
     setMoodboardImages((prev) => ({ ...prev, [mb.id]: [entry] }));
+    setSelectedMoodboard(mb);
+    setSelectedCollection(null);
+  }
+
+  function handleAddImagesToMoodboard(moodboardId: string, imagePaths: string[]): { added: number; skipped: number } {
+    const current = moodboardImages[moodboardId] || [];
+    const existingPaths = new Set(current.map((img) => img.path));
+    const toAdd = imagePaths.filter((p) => !existingPaths.has(p));
+    setMoodboardImages((prev) => {
+      const prevCurrent = prev[moodboardId] || [];
+      const prevExisting = new Set(prevCurrent.map((img) => img.path));
+      const newEntries: MoodboardImage[] = imagePaths
+        .filter((p) => !prevExisting.has(p))
+        .map((path, i) => ({
+          id: crypto.randomUUID(),
+          path,
+          x: 300 + (i % 4) * 220,
+          y: 200 + Math.floor(i / 4) * 220,
+          width: 200,
+          height: 200,
+        }));
+      return { ...prev, [moodboardId]: [...prevCurrent, ...newEntries] };
+    });
+    const mb = moodboards.find((m) => m.id === moodboardId);
+    if (mb) {
+      setSelectedMoodboard(mb);
+      setSelectedCollection(null);
+    }
+    return { added: toAdd.length, skipped: imagePaths.length - toAdd.length };
+  }
+
+  function handleCreateMoodboardWithImages(name: string, imagePaths: string[]) {
+    const mb: Moodboard = { id: crypto.randomUUID(), name };
+    setMoodboards((prev) => [...prev, mb]);
+    const entries: MoodboardImage[] = imagePaths.map((path, i) => ({
+      id: crypto.randomUUID(),
+      path,
+      x: 300 + (i % 4) * 220,
+      y: 200 + Math.floor(i / 4) * 220,
+      width: 200,
+      height: 200,
+    }));
+    setMoodboardImages((prev) => ({ ...prev, [mb.id]: entries }));
     setSelectedMoodboard(mb);
     setSelectedCollection(null);
   }
@@ -234,8 +285,12 @@ function App() {
               onAddTagToImage={handleAddTagToImage}
               onRemoveTagFromImage={handleRemoveTagFromImage}
               moodboards={moodboards}
+              moodboardImages={moodboardImages}
               onAddImageToMoodboard={handleAddImageToMoodboard}
               onCreateMoodboardWithImage={handleCreateMoodboardWithImage}
+              onAddImagesToMoodboard={handleAddImagesToMoodboard}
+              onCreateMoodboardWithImages={handleCreateMoodboardWithImages}
+              onShowToast={showToast}
             />
           ) : selectedMoodboard ? (
             <MoodboardView
@@ -268,6 +323,7 @@ function App() {
           )}
         </main>
       </div>
+      {toast && <div className={`app-toast app-toast--${toast.variant}`}>{toast.message}</div>}
     </div>
   );
 }
