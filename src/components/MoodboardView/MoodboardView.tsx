@@ -11,6 +11,8 @@ interface MoodboardViewProps {
   onDelete: () => void;
   onRemoveImage: (imageId: string) => void;
   onUpdateImage: (imageId: string, updates: Partial<Pick<MoodboardImage, "x" | "y" | "width">>) => void;
+  initialSelectedIds?: string[];
+  onConsumeSelection?: () => void;
 }
 
 interface LoadedImage {
@@ -48,6 +50,8 @@ export default function MoodboardView({
   onDelete,
   onRemoveImage,
   onUpdateImage,
+  initialSelectedIds,
+  onConsumeSelection,
 }: MoodboardViewProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [loadedImages, setLoadedImages] = useState<LoadedImage[]>([]);
@@ -55,7 +59,7 @@ export default function MoodboardView({
   const [resizing, setResizing] = useState<{ id: string; startX: number; startWidth: number } | null>(null);
   const [panning, setPanning] = useState<{ startX: number; startY: number; panStartX: number; panStartY: number } | null>(null);
   const [marquee, setMarquee] = useState<MarqueeState | null>(null);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set(initialSelectedIds ?? []));
   const [panX, setPanX] = useState(0);
   const [panY, setPanY] = useState(0);
   const [zoom, setZoom] = useState(1);
@@ -74,6 +78,11 @@ export default function MoodboardView({
       y: (clientY - rect.top - panYRef.current) / zoomRef.current,
     };
   }
+
+  useEffect(() => {
+    onConsumeSelection?.();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     setLoadedImages(
