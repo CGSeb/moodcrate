@@ -37,6 +37,7 @@ function App() {
   const [moodboardImages, setMoodboardImages] = useLocalStorage<Record<string, MoodboardImage[]>>("moodboardImages", {});
   const { tags, setTags, imageTags, setImageTags } = useTagsStorage();
   const [favorites, setFavorites] = useLocalStorage<string[]>("favorites", []);
+  const [pendingMoodboardSelection, setPendingMoodboardSelection] = useState<string[]>([]);
   const [toast, setToast] = useState<{ message: string; variant: "success" | "warning" } | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -84,28 +85,29 @@ function App() {
   function handleAddImagesToMoodboard(moodboardId: string, imagePaths: string[]): { added: number; skipped: number } {
     const current = moodboardImages[moodboardId] || [];
     const existingPaths = new Set(current.map((img) => img.path));
-    const toAdd = imagePaths.filter((p) => !existingPaths.has(p));
+    const newEntries: MoodboardImage[] = imagePaths
+      .filter((p) => !existingPaths.has(p))
+      .map((path, i) => ({
+        id: crypto.randomUUID(),
+        path,
+        x: 300 + (i % 4) * 220,
+        y: 200 + Math.floor(i / 4) * 220,
+        width: 200,
+        height: 200,
+      }));
     setMoodboardImages((prev) => {
       const prevCurrent = prev[moodboardId] || [];
       const prevExisting = new Set(prevCurrent.map((img) => img.path));
-      const newEntries: MoodboardImage[] = imagePaths
-        .filter((p) => !prevExisting.has(p))
-        .map((path, i) => ({
-          id: crypto.randomUUID(),
-          path,
-          x: 300 + (i % 4) * 220,
-          y: 200 + Math.floor(i / 4) * 220,
-          width: 200,
-          height: 200,
-        }));
-      return { ...prev, [moodboardId]: [...prevCurrent, ...newEntries] };
+      const filtered = newEntries.filter((e) => !prevExisting.has(e.path));
+      return { ...prev, [moodboardId]: [...prevCurrent, ...filtered] };
     });
+    setPendingMoodboardSelection(newEntries.map((e) => e.id));
     const mb = moodboards.find((m) => m.id === moodboardId);
     if (mb) {
       setSelectedMoodboard(mb);
       setSelectedCollection(null);
     }
-    return { added: toAdd.length, skipped: imagePaths.length - toAdd.length };
+    return { added: newEntries.length, skipped: imagePaths.length - newEntries.length };
   }
 
   function handleCreateMoodboardWithImages(name: string, imagePaths: string[]) {
@@ -299,6 +301,8 @@ function App() {
               onDelete={handleDeleteMoodboard}
               onRemoveImage={(imageId: string) => handleRemoveImageFromMoodboard(selectedMoodboard.id, imageId)}
               onUpdateImage={(imageId: string, updates: Partial<Pick<MoodboardImage, "x" | "y" | "width">>) => handleUpdateMoodboardImage(selectedMoodboard.id, imageId, updates)}
+              initialSelectedIds={pendingMoodboardSelection}
+              onConsumeSelection={() => setPendingMoodboardSelection([])}
             />
           ) : (
             <HomePage
