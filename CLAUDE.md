@@ -12,6 +12,7 @@
 | Frontend | **React 19** + TypeScript + Vite |
 | State | **localStorage** (via `useLocalStorage` hook) |
 | Icons | **lucide-react** |
+| Markdown | **marked** |
 | Tauri plugins | `dialog`, `opener`, `clipboard-manager`, `window-state` |
 
 ## Architecture
@@ -82,6 +83,7 @@ Moodcrate/
 - Batched thumbnail loading (20 at a time) with centered progress indicator
 - Clear collection thumbnail cache from settings popover
 - NSIS uninstaller hook cleans up app data (thumbnail cache) on uninstall
+- Text labels on moodboard canvas: free-form text boxes with move, resize (width+height), select, and multi-drag alongside images; double-click to edit; auto-removed if empty on exit; Markdown rendered when not editing (via `marked`); floating formatting toolbar with font size (±2px, 8–96px), H1/H2/list toggles with active-line highlighting; persisted in localStorage (`moodboardTexts`)
 
 ### Planned
 - Search and filter by categories, colors

@@ -11,6 +11,31 @@
   margin-bottom: 20px;
 }
 
+.moodboard-view__header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.moodboard-view__add-text-btn {
+  all: unset;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  color: #aaa;
+  font-size: 13px;
+  border: 1px solid #333;
+}
+
+.moodboard-view__add-text-btn:hover {
+  background: rgba(255, 255, 255, 0.07);
+  color: #ddd;
+  border-color: #444;
+}
+
 .moodboard-view__delete-btn {
   all: unset;
   cursor: pointer;
@@ -147,4 +172,213 @@
   border: 1px solid #5a7de8;
   background: rgba(90, 125, 232, 0.15);
   pointer-events: none;
+}
+
+/* Text label items */
+.moodboard-view__text-item {
+  position: absolute;
+  cursor: grab;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  user-select: none;
+  background: rgba(20, 20, 26, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.moodboard-view__text-item:hover {
+  outline: 2px solid #5a7de8;
+  outline-offset: -2px;
+}
+
+.moodboard-view__text-item.moodboard-view__item--selected {
+  outline: 2px solid #5a7de8;
+  outline-offset: -2px;
+}
+
+.moodboard-view__text-item.moodboard-view__item--dragging {
+  cursor: grabbing;
+  outline: 2px solid #5a7de8;
+  outline-offset: -2px;
+  z-index: 10;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+}
+
+.moodboard-view__text-item--editing {
+  cursor: default;
+  z-index: 20;
+  outline: 2px solid #5a7de8;
+  outline-offset: -2px;
+}
+
+.moodboard-view__text-item:hover .moodboard-view__item-remove {
+  opacity: 1;
+}
+
+.moodboard-view__text-item:hover .moodboard-view__item-resize {
+  opacity: 1;
+}
+
+.moodboard-view__text-content {
+  width: 100%;
+  height: 100%;
+  padding: 8px 10px;
+  box-sizing: border-box;
+  color: #e0e0e0;
+  line-height: 1.5;
+  word-break: break-word;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.moodboard-view__text-content--empty {
+  white-space: pre-wrap;
+  color: #555;
+  font-style: italic;
+}
+
+/* Markdown element resets inside text labels */
+.moodboard-view__text-content > *:first-child { margin-top: 0; }
+.moodboard-view__text-content > *:last-child { margin-bottom: 0; }
+
+.moodboard-view__text-content p {
+  margin: 0 0 0.4em;
+}
+
+.moodboard-view__text-content h1,
+.moodboard-view__text-content h2,
+.moodboard-view__text-content h3,
+.moodboard-view__text-content h4 {
+  margin: 0.2em 0 0.3em;
+  line-height: 1.2;
+  color: #f0f0f0;
+  font-weight: 600;
+}
+.moodboard-view__text-content h1 { font-size: 1.5em; }
+.moodboard-view__text-content h2 { font-size: 1.25em; }
+.moodboard-view__text-content h3 { font-size: 1.1em; }
+.moodboard-view__text-content h4 { font-size: 1em; }
+
+.moodboard-view__text-content strong { color: #f0f0f0; }
+.moodboard-view__text-content em { color: #c8c8c8; }
+
+.moodboard-view__text-content ul,
+.moodboard-view__text-content ol {
+  margin: 0.2em 0;
+  padding-left: 1.4em;
+}
+.moodboard-view__text-content li { margin: 0.1em 0; }
+
+.moodboard-view__text-content code {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  padding: 0.1em 0.35em;
+  font-family: monospace;
+  font-size: 0.88em;
+  color: #d0b0ff;
+}
+
+.moodboard-view__text-content pre {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+  padding: 6px 8px;
+  margin: 0.3em 0;
+  overflow-x: auto;
+}
+.moodboard-view__text-content pre code {
+  background: none;
+  padding: 0;
+}
+
+.moodboard-view__text-content hr {
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  margin: 0.5em 0;
+}
+
+.moodboard-view__text-content a {
+  color: #7ea6f0;
+  text-decoration: underline;
+  pointer-events: none;
+}
+
+.moodboard-view__text-content blockquote {
+  border-left: 3px solid rgba(255, 255, 255, 0.2);
+  margin: 0.3em 0;
+  padding-left: 0.75em;
+  color: #aaa;
+}
+
+.moodboard-view__text-font-controls {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: rgba(28, 28, 34, 0.95);
+  border: 1px solid #444;
+  border-radius: 6px;
+  padding: 3px 4px;
+  z-index: 30;
+  pointer-events: all;
+}
+
+.moodboard-view__text-toolbar-sep {
+  width: 1px;
+  height: 16px;
+  background: #444;
+  margin: 0 2px;
+  flex-shrink: 0;
+}
+
+.moodboard-view__text-font-btn {
+  all: unset;
+  cursor: pointer;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  color: #ccc;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.moodboard-view__text-font-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.moodboard-view__text-font-btn--active {
+  background: rgba(90, 125, 232, 0.22);
+  color: #7ea6f0;
+}
+
+.moodboard-view__text-font-btn--active:hover {
+  background: rgba(90, 125, 232, 0.35);
+  color: #9bbcf8;
+}
+
+.moodboard-view__text-font-size {
+  font-size: 12px;
+  color: #999;
+  min-width: 32px;
+  text-align: center;
+  user-select: none;
+}
+
+.moodboard-view__text-textarea {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 8px 10px;
+  box-sizing: border-box;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #e0e0e0;
+  line-height: 1.5;
+  resize: none;
+  font-family: inherit;
+  cursor: text;
 }
