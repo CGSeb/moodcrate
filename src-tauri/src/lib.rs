@@ -164,7 +164,7 @@ fn delete_image(path: String) -> Result<(), String> {
     fs::remove_file(file).map_err(|e| e.to_string())
 }
 
-fn tags_data_path(app_handle: &tauri::AppHandle) -> Result<PathBuf, String> {
+fn moodcrate_data_dir(app_handle: &tauri::AppHandle) -> Result<PathBuf, String> {
     let dir = app_handle
         .path()
         .document_dir()
@@ -174,7 +174,15 @@ fn tags_data_path(app_handle: &tauri::AppHandle) -> Result<PathBuf, String> {
     if !app_dir.exists() {
         fs::create_dir_all(&app_dir).map_err(|e| e.to_string())?;
     }
-    Ok(app_dir.join("tags.json"))
+    Ok(app_dir)
+}
+
+fn tags_data_path(app_handle: &tauri::AppHandle) -> Result<PathBuf, String> {
+    Ok(moodcrate_data_dir(app_handle)?.join("tags.json"))
+}
+
+fn moodboards_data_path(app_handle: &tauri::AppHandle) -> Result<PathBuf, String> {
+    Ok(moodcrate_data_dir(app_handle)?.join("moodboards.json"))
 }
 
 #[tauri::command]
@@ -190,6 +198,22 @@ fn load_tags_data(app_handle: tauri::AppHandle) -> Result<String, String> {
 #[tauri::command]
 fn save_tags_data(app_handle: tauri::AppHandle, data: String) -> Result<(), String> {
     let path = tags_data_path(&app_handle)?;
+    fs::write(&path, data).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn load_moodboards_data(app_handle: tauri::AppHandle) -> Result<String, String> {
+    let path = moodboards_data_path(&app_handle)?;
+    if path.is_file() {
+        fs::read_to_string(&path).map_err(|e| e.to_string())
+    } else {
+        Ok(String::new())
+    }
+}
+
+#[tauri::command]
+fn save_moodboards_data(app_handle: tauri::AppHandle, data: String) -> Result<(), String> {
+    let path = moodboards_data_path(&app_handle)?;
     fs::write(&path, data).map_err(|e| e.to_string())
 }
 
@@ -318,7 +342,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_window_state::Builder::default().build())
-        .invoke_handler(tauri::generate_handler![list_images, read_image, import_files, save_clipboard_image, delete_image, generate_thumbnail, clear_collection_cache, load_tags_data, save_tags_data])
+        .invoke_handler(tauri::generate_handler![list_images, read_image, import_files, save_clipboard_image, delete_image, generate_thumbnail, clear_collection_cache, load_tags_data, save_tags_data, load_moodboards_data, save_moodboards_data])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

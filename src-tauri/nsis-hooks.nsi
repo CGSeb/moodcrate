@@ -9,7 +9,7 @@ Function un.MoodcrateDataPage
   Pop $0
   ${NSD_CreateLabel} 0 0 100% 20u "Optional: remove stored Moodcrate data"
   Pop $0
-  ${NSD_CreateCheckbox} 0 28u 100% 12u "Remove thumbnail cache and tags (stored in Documents\Moodcrate)"
+  ${NSD_CreateCheckbox} 0 28u 100% 12u "Remove thumbnail cache, tags and moodboards (stored in Documents\Moodcrate)"
   Pop $MoodcrateCheckHandle
   ${NSD_SetState} $MoodcrateCheckHandle ${BST_UNCHECKED}
   nsDialogs::Show
