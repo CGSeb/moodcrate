@@ -5,6 +5,7 @@ import CollectionView from "./components/CollectionView/CollectionView";
 import MoodboardView from "./components/MoodboardView/MoodboardView";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import { useTagsStorage } from "./hooks/useTagsStorage";
+import { useMoodboardsStorage } from "./hooks/useMoodboardsStorage";
 import { wouldCreateCycle } from "./utils/tagTree";
 import HomePage from "./components/HomePage/HomePage";
 import "./App.css";
@@ -42,10 +43,8 @@ export interface MoodboardText {
 function App() {
   const [collections, setCollections] = useLocalStorage<Collection[]>("collections", []);
   const [selectedCollection, setSelectedCollection] = useState<Collection | null>(null);
-  const [moodboards, setMoodboards] = useLocalStorage<Moodboard[]>("moodboards", []);
+  const { moodboards, setMoodboards, moodboardImages, setMoodboardImages, moodboardTexts, setMoodboardTexts } = useMoodboardsStorage();
   const [selectedMoodboard, setSelectedMoodboard] = useState<Moodboard | null>(null);
-  const [moodboardImages, setMoodboardImages] = useLocalStorage<Record<string, MoodboardImage[]>>("moodboardImages", {});
-  const [moodboardTexts, setMoodboardTexts] = useLocalStorage<Record<string, MoodboardText[]>>("moodboardTexts", {});
   const { tags, setTags, imageTags, setImageTags } = useTagsStorage();
   const [favorites, setFavorites] = useLocalStorage<string[]>("favorites", []);
   const [pendingMoodboardSelection, setPendingMoodboardSelection] = useState<string[]>([]);
@@ -133,6 +132,7 @@ function App() {
       height: 200,
     }));
     setMoodboardImages((prev) => ({ ...prev, [mb.id]: entries }));
+    setPendingMoodboardSelection(entries.map((e) => e.id));
     setSelectedMoodboard(mb);
     setSelectedCollection(null);
   }
