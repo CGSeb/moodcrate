@@ -42,10 +42,22 @@ jobs:
 
       - run: npm install
 
+      - name: Prepare updater signing key
+        shell: bash
+        run: |
+          printf '%s' "${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}" > "$RUNNER_TEMP/tauri.key"
+
+      - name: Debug signing key fingerprint
+        shell: bash
+        run: |
+          wc -c "$RUNNER_TEMP/tauri.key"
+          sha256sum "$RUNNER_TEMP/tauri.key"
+
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ runner.temp }}/tauri.key
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
         with:
           tagName: v__VERSION__
           releaseName: Moodcrate v__VERSION__

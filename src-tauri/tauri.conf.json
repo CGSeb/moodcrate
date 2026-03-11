@@ -46,7 +46,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDExMUNGOTc3NDg5RkNFMkMKUldRc3pwOUlkL2tjRVZUNXA2bnR2YXZEWDVCYmJ4TmxlVjdreWhKcVZaaktaVmV5MmNCdk5TUmIK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDMzNUZBMjA4QkExNjA3NEIKUldSTEJ4YTZDS0pmTXl4VFBTL2xSaW13KzdTS0ZHMDk4Vk5mYTBXYmFZREVYcHBEcjBGbFpUVEgK",
       "endpoints": [
         "https://github.com/CGSeb/moodcrate/releases/latest/download/latest.json"
       ],
