@@ -10,6 +10,7 @@ import {
   Plus,
   RefreshCw,
   Star,
+  CircleCheck,
 } from "lucide-react";
 import { open } from "@tauri-apps/plugin-dialog";
 import type { Moodboard } from "../../App";
@@ -111,9 +112,7 @@ export default function Sidebar({
       case "available":
         return `Update ready: v${updateState.latestVersion}`;
       case "up-to-date":
-        return updateState.currentVersion
-          ? `You are on ${currentVersionLabel}.`
-          : "You are on the latest release.";
+        return "";
       case "installing":
         return updateState.latestVersion
           ? `Installing v${updateState.latestVersion}${updateState.progress !== null ? ` (${updateState.progress}%)` : "..."}`
@@ -127,7 +126,9 @@ export default function Sidebar({
 
   const collapsedTooltip = updateState.status === "available"
     ? `Update available: v${updateState.latestVersion}. Click to expand.`
-    : updateStatusLabel;
+    : updateState.status === "up-to-date"
+      ? "Up to date"
+      : updateStatusLabel;
 
   return (
     <>
@@ -337,10 +338,25 @@ export default function Sidebar({
             </Tooltip>
           ) : (
             <div className="sidebar__update-panel">
-              <div className="sidebar__version-label">{currentVersionLabel}</div>
-              <div className={`sidebar__update-status sidebar__update-status--${updateState.status}`}>
-                {updateStatusLabel}
+              <div className="sidebar__version-meta">
+                <div className="sidebar__version-label">{currentVersionLabel}</div>
+                {updateState.status === "up-to-date" && (
+                  <Tooltip text="Up to date">
+                    <span
+                      className="sidebar__version-status-icon"
+                      aria-label="Up to date"
+                      role="img"
+                    >
+                      <CircleCheck size={14} />
+                    </span>
+                  </Tooltip>
+                )}
               </div>
+              {updateStatusLabel && (
+                <div className={`sidebar__update-status sidebar__update-status--${updateState.status}`}>
+                  {updateStatusLabel}
+                </div>
+              )}
               {updateState.status === "installing" && updateState.progress !== null && (
                 <div className="sidebar__update-progress" aria-hidden="true">
                   <div
@@ -375,7 +391,7 @@ export default function Sidebar({
                       ? "Checking"
                       : updateState.status === "installing"
                         ? installProgressLabel
-                        : "Check again"}
+                        : "Check for update"}
                   </span>
                 </button>
               </div>
