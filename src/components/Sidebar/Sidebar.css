@@ -271,10 +271,25 @@
   user-select: none;
 }
 
+.sidebar__version-meta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
 .sidebar__version-label {
   font-size: 11px;
   color: #777;
   text-align: center;
+}
+
+.sidebar__version-status-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #79cb7e;
+  line-height: 0;
 }
 
 .sidebar__update-status {
