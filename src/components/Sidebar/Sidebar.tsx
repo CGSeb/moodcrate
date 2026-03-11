@@ -1,5 +1,6 @@
 import { useState } from "react";
 import {
+  Download,
   PanelLeftClose,
   PanelLeftOpen,
   House,
@@ -7,10 +8,12 @@ import {
   Layout,
   ChevronRight,
   Plus,
+  RefreshCw,
   Star,
 } from "lucide-react";
 import { open } from "@tauri-apps/plugin-dialog";
 import type { Moodboard } from "../../App";
+import type { UpdateState } from "../../hooks/useUpdateCheck";
 import NameDialog from "../NameDialog/NameDialog";
 import Tooltip from "../Tooltip/Tooltip";
 import "./Sidebar.css";
@@ -32,6 +35,9 @@ interface SidebarProps {
   onHome: () => void;
   favorites: string[];
   onToggleFavorite: (id: string) => void;
+  updateState: UpdateState;
+  onCheckForUpdates: () => void;
+  onInstallUpdate: () => void;
 }
 
 export default function Sidebar({
@@ -46,6 +52,9 @@ export default function Sidebar({
   onHome,
   favorites,
   onToggleFavorite,
+  updateState,
+  onCheckForUpdates,
+  onInstallUpdate,
 }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
@@ -73,6 +82,52 @@ export default function Sidebar({
     onAddCollection({ name, path: pendingPath });
     setPendingPath(null);
   }
+
+  function handleCollapsedIndicatorClick() {
+    if (updateState.status === "available") {
+      setCollapsed(false);
+      return;
+    }
+
+    if (updateState.status === "checking" || updateState.status === "installing") {
+      return;
+    }
+
+    onCheckForUpdates();
+  }
+
+  const currentVersionLabel = updateState.currentVersion
+    ? `v${updateState.currentVersion}`
+    : "Version unavailable";
+
+  const installProgressLabel = updateState.progress !== null
+    ? `Installing ${updateState.progress}%`
+    : "Installing";
+
+  const updateStatusLabel = (() => {
+    switch (updateState.status) {
+      case "checking":
+        return "Checking for updates...";
+      case "available":
+        return `Update ready: v${updateState.latestVersion}`;
+      case "up-to-date":
+        return updateState.currentVersion
+          ? `You are on ${currentVersionLabel}.`
+          : "You are on the latest release.";
+      case "installing":
+        return updateState.latestVersion
+          ? `Installing v${updateState.latestVersion}${updateState.progress !== null ? ` (${updateState.progress}%)` : "..."}`
+          : "Installing update...";
+      case "error":
+        return updateState.error ?? "Update check failed.";
+      default:
+        return "";
+    }
+  })();
+
+  const collapsedTooltip = updateState.status === "available"
+    ? `Update available: v${updateState.latestVersion}. Click to expand.`
+    : updateStatusLabel;
 
   return (
     <>
@@ -107,7 +162,6 @@ export default function Sidebar({
 
         {collapsed ? (
           <nav className="sidebar__nav">
-            {/* Collapsed: Collections icon with flyout */}
             <div className="sidebar__collapsed-section">
               <div className="sidebar__collapsed-icon">
                 <FolderOpen size={18} />
@@ -130,7 +184,6 @@ export default function Sidebar({
               </div>
             </div>
 
-            {/* Collapsed: Moodboards icon with flyout */}
             <div className="sidebar__collapsed-section">
               <div className="sidebar__collapsed-icon">
                 <Layout size={18} />
@@ -155,7 +208,6 @@ export default function Sidebar({
           </nav>
         ) : (
           <nav className="sidebar__nav">
-            {/* Collections */}
             <div className="sidebar__section">
               <button
                 className="sidebar__section-header"
@@ -212,7 +264,6 @@ export default function Sidebar({
               )}
             </div>
 
-            {/* Moodboards */}
             <div className="sidebar__section">
               <button
                 className="sidebar__section-header"
@@ -274,14 +325,69 @@ export default function Sidebar({
           </nav>
         )}
         <div className="sidebar__version">
-          {!collapsed && "v1.2.0"}
+          {collapsed ? (
+            <Tooltip text={collapsedTooltip}>
+              <button
+                className={`sidebar__update-indicator sidebar__update-indicator--${updateState.status}`}
+                onClick={handleCollapsedIndicatorClick}
+                aria-label={collapsedTooltip}
+                disabled={updateState.status === "installing"}
+                type="button"
+              />
+            </Tooltip>
+          ) : (
+            <div className="sidebar__update-panel">
+              <div className="sidebar__version-label">{currentVersionLabel}</div>
+              <div className={`sidebar__update-status sidebar__update-status--${updateState.status}`}>
+                {updateStatusLabel}
+              </div>
+              {updateState.status === "installing" && updateState.progress !== null && (
+                <div className="sidebar__update-progress" aria-hidden="true">
+                  <div
+                    className="sidebar__update-progress-bar"
+                    style={{ width: `${updateState.progress}%` }}
+                  />
+                </div>
+              )}
+              <div className="sidebar__update-actions">
+                {updateState.status === "available" && (
+                  <button
+                    className="sidebar__update-action sidebar__update-action--primary"
+                    onClick={onInstallUpdate}
+                    type="button"
+                  >
+                    <Download size={12} />
+                    <span>Install update</span>
+                  </button>
+                )}
+                <button
+                  className="sidebar__update-action"
+                  onClick={onCheckForUpdates}
+                  disabled={updateState.status === "checking" || updateState.status === "installing"}
+                  type="button"
+                >
+                  <RefreshCw
+                    size={12}
+                    className={updateState.status === "checking" || updateState.status === "installing" ? "sidebar__update-icon sidebar__update-icon--spinning" : "sidebar__update-icon"}
+                  />
+                  <span>
+                    {updateState.status === "checking"
+                      ? "Checking"
+                      : updateState.status === "installing"
+                        ? installProgressLabel
+                        : "Check again"}
+                  </span>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </aside>
 
       <NameDialog
         open={pendingPath !== null}
         title="New Collection"
-        placeholder="Collection name…"
+        placeholder="Collection name..."
         onConfirm={handleConfirmName}
         onCancel={() => setPendingPath(null)}
       />
@@ -289,7 +395,7 @@ export default function Sidebar({
       <NameDialog
         open={showMoodboardDialog}
         title="New Moodboard"
-        placeholder="Moodboard name…"
+        placeholder="Moodboard name..."
         onConfirm={(name) => {
           setShowMoodboardDialog(false);
           onAddMoodboard(name);

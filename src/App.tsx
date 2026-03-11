@@ -6,6 +6,7 @@ import MoodboardView from "./components/MoodboardView/MoodboardView";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import { useTagsStorage } from "./hooks/useTagsStorage";
 import { useMoodboardsStorage } from "./hooks/useMoodboardsStorage";
+import { useUpdateCheck } from "./hooks/useUpdateCheck";
 import { wouldCreateCycle } from "./utils/tagTree";
 import HomePage from "./components/HomePage/HomePage";
 import "./App.css";
@@ -50,6 +51,7 @@ function App() {
   const [pendingMoodboardSelection, setPendingMoodboardSelection] = useState<string[]>([]);
   const [toast, setToast] = useState<{ message: string; variant: "success" | "warning" } | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { updateState, checkForUpdates, installUpdate } = useUpdateCheck();
 
   function showToast(message: string, variant: "success" | "warning" = "success") {
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
@@ -320,6 +322,9 @@ function App() {
           }}
           favorites={favorites}
           onToggleFavorite={handleToggleFavorite}
+          updateState={updateState}
+          onCheckForUpdates={checkForUpdates}
+          onInstallUpdate={installUpdate}
         />
         <main className="main-content">
           {selectedCollection ? (

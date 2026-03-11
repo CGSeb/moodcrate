@@ -236,7 +236,7 @@ async fn generate_thumbnail(app_handle: tauri::AppHandle, path: String, max_size
 
         let ext = src.extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
 
-        // SVGs are already lightweight vector graphics — return original path
+        // SVGs are already lightweight vector graphics â€” return original path
         if ext == "svg" {
             return Ok(path);
         }
@@ -342,6 +342,13 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_window_state::Builder::default().build())
+        .plugin(tauri_plugin_process::init())
+        .setup(|app| {
+            #[cfg(desktop)]
+            app.handle().plugin(tauri_plugin_updater::Builder::new().build())?;
+
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![list_images, read_image, import_files, save_clipboard_image, delete_image, generate_thumbnail, clear_collection_cache, load_tags_data, save_tags_data, load_moodboards_data, save_moodboards_data])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
