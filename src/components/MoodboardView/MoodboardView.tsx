@@ -42,6 +42,25 @@ const MIN_ZOOM = 0.1;
 const MAX_ZOOM = 5;
 const ZOOM_SPEED = 0.001;
 
+function getDevicePixelRatio() {
+  return typeof window === "undefined" ? 1 : window.devicePixelRatio || 1;
+}
+
+function snapScreenValue(value: number) {
+  const dpr = getDevicePixelRatio();
+  return Math.round(value * dpr) / dpr;
+}
+
+function snapCanvasValue(value: number, zoom: number) {
+  const dpr = getDevicePixelRatio();
+  const scale = Math.max(zoom, MIN_ZOOM);
+  return Math.round(value * scale * dpr) / (scale * dpr);
+}
+
+function normalizeZoom(value: number) {
+  return Math.round(value * 1000) / 1000;
+}
+
 function rectsIntersect(
   a: { left: number; top: number; right: number; bottom: number },
   b: { left: number; top: number; right: number; bottom: number },
@@ -152,12 +171,12 @@ export default function MoodboardView({
       const padding = 40;
       const availW = rect.width - padding * 2;
       const availH = rect.height - padding * 2;
-      const fitZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Math.min(availW / contentW, availH / contentH)));
+      const fitZoom = normalizeZoom(Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Math.min(availW / contentW, availH / contentH))));
 
       const centerX = (minX + maxX) / 2;
       const centerY = (minY + maxY) / 2;
-      const newPanX = rect.width / 2 - centerX * fitZoom;
-      const newPanY = rect.height / 2 - centerY * fitZoom;
+      const newPanX = snapScreenValue(rect.width / 2 - centerX * fitZoom);
+      const newPanY = snapScreenValue(rect.height / 2 - centerY * fitZoom);
 
       setPanX(newPanX);
       setPanY(newPanY);
@@ -421,11 +440,11 @@ export default function MoodboardView({
       const cursorY = e.clientY - rect.top;
 
       const delta = -e.deltaY * ZOOM_SPEED;
-      const newZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom * (1 + delta)));
+      const newZoom = normalizeZoom(Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom * (1 + delta))));
       const scale = newZoom / zoom;
 
-      setPanX((prev) => cursorX - scale * (cursorX - prev));
-      setPanY((prev) => cursorY - scale * (cursorY - prev));
+      setPanX((prev) => snapScreenValue(cursorX - scale * (cursorX - prev)));
+      setPanY((prev) => snapScreenValue(cursorY - scale * (cursorY - prev)));
       setZoom(newZoom);
     }
 
@@ -434,10 +453,13 @@ export default function MoodboardView({
   }, [zoom]);
 
   const dotSpacing = 24 * zoom;
+  const renderPanX = snapScreenValue(panX);
+  const renderPanY = snapScreenValue(panY);
+  const renderZoom = normalizeZoom(zoom);
   const bgStyle = {
     backgroundImage: `radial-gradient(circle, #444 ${Math.max(0.8, zoom * 0.8)}px, transparent ${Math.max(0.8, zoom * 0.8)}px)`,
     backgroundSize: `${dotSpacing}px ${dotSpacing}px`,
-    backgroundPosition: `${panX}px ${panY}px`,
+    backgroundPosition: `${renderPanX}px ${renderPanY}px`,
   };
 
   const marqueeStyle = marquee ? {
@@ -480,7 +502,7 @@ export default function MoodboardView({
       >
         <div
           className="moodboard-view__layer"
-          style={{ transform: `translate(${panX}px, ${panY}px) scale(${zoom})` }}
+          style={{ transform: `translate(${renderPanX}px, ${renderPanY}px) scale(${renderZoom})` }}
         >
           {!hasContent && (
             <p className="moodboard-view__empty">
@@ -496,7 +518,11 @@ export default function MoodboardView({
                 key={img.id}
                 data-img-id={img.id}
                 className={`moodboard-view__item ${isDragging ? "moodboard-view__item--dragging" : ""} ${isSelected ? "moodboard-view__item--selected" : ""}`}
-                style={{ left: img.x, top: img.y, width: img.width }}
+                style={{
+                  left: snapCanvasValue(img.x, renderZoom),
+                  top: snapCanvasValue(img.y, renderZoom),
+                  width: snapCanvasValue(img.width, renderZoom),
+                }}
                 onMouseDown={(e) => handleItemMouseDown(e, img.id)}
               >
                 {loaded ? (
@@ -528,7 +554,10 @@ export default function MoodboardView({
                 {isEditing && (
                   <div
                     className="moodboard-view__text-font-controls"
-                    style={{ left: txt.x, top: txt.y - 46 }}
+                    style={{
+                      left: snapCanvasValue(txt.x, renderZoom),
+                      top: snapCanvasValue(txt.y - 46, renderZoom),
+                    }}
                     onMouseDown={(e) => e.stopPropagation()}
                   >
                     <button
@@ -565,7 +594,12 @@ export default function MoodboardView({
                 )}
                 <div
                   className={`moodboard-view__text-item ${isDragging ? "moodboard-view__item--dragging" : ""} ${isSelected ? "moodboard-view__item--selected" : ""} ${isEditing ? "moodboard-view__text-item--editing" : ""}`}
-                  style={{ left: txt.x, top: txt.y, width: txt.width, height: txt.height }}
+                  style={{
+                    left: snapCanvasValue(txt.x, renderZoom),
+                    top: snapCanvasValue(txt.y, renderZoom),
+                    width: snapCanvasValue(txt.width, renderZoom),
+                    height: snapCanvasValue(txt.height, renderZoom),
+                  }}
                   onMouseDown={(e) => handleItemMouseDown(e, txt.id)}
                   onDoubleClick={(e) => handleTextDoubleClick(e, txt.id)}
                 >

@@ -21,6 +21,10 @@ interface ImageEntry {
   dataUrl: string | null;
 }
 
+function toAssetUrl(path: string) {
+  return convertFileSrc(path);
+}
+
 interface CollectionViewProps {
   collection: Collection;
   onDelete: () => void;
@@ -101,7 +105,7 @@ export default function CollectionView({
           const results = await Promise.all(
             batch.map((p) =>
               invoke<string>("generate_thumbnail", { path: p, maxSize: 400 })
-                .then((thumbPath) => convertFileSrc(thumbPath))
+                .then((thumbPath) => toAssetUrl(thumbPath))
                 .catch(() => null)
             )
           );
@@ -245,7 +249,7 @@ export default function CollectionView({
 
   function handleOpenViewer(path: string) {
     setViewerPath(path);
-    setViewerSrc(convertFileSrc(path));
+    setViewerSrc(toAssetUrl(path));
   }
 
   function handleCloseViewer() {
@@ -437,7 +441,17 @@ export default function CollectionView({
                     }}
                   />
                   {img.dataUrl ? (
-                    <img src={img.dataUrl} alt="" className="collection-view__img" />
+                    <img
+                      src={img.dataUrl}
+                      alt=""
+                      className="collection-view__img"
+                      onError={(e) => {
+                        const fallbackSrc = toAssetUrl(img.path);
+                        if (e.currentTarget.src !== fallbackSrc) {
+                          e.currentTarget.src = fallbackSrc;
+                        }
+                      }}
+                    />
                   ) : (
                     <div className="collection-view__placeholder" />
                   )}
