@@ -1,6 +1,6 @@
 [package]
 name = "moodcrate"
-version = "1.3.1"
+version = "1.3.2"
 description = "Visual reference manager and moodboard creator for artists"
 authors = ["Sebastien"]
 edition = "2021"
@@ -30,4 +30,3 @@ sha2 = "0.10"
 tauri-plugin-window-state = "2.4.1"
 tauri-plugin-process = "2"
 tauri-plugin-updater = "2"
-

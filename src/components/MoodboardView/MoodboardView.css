@@ -65,9 +65,7 @@
 
 .moodboard-view__layer {
   position: absolute;
-  top: 0;
-  left: 0;
-  transform-origin: 0 0;
+  inset: 0;
 }
 
 .moodboard-view__empty {
@@ -114,6 +112,7 @@
   height: auto;
   display: block;
   pointer-events: none;
+  image-rendering: auto;
 }
 
 .moodboard-view__item-placeholder {
@@ -229,6 +228,7 @@
   word-break: break-word;
   overflow: hidden;
   pointer-events: none;
+  text-rendering: optimizeLegibility;
 }
 
 .moodboard-view__text-content--empty {
@@ -381,4 +381,5 @@
   resize: none;
   font-family: inherit;
   cursor: text;
+  text-rendering: optimizeLegibility;
 }

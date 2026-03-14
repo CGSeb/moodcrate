@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type MouseEvent } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { Minus, Square, Copy, X } from "lucide-react";
 import appIcon from "../../assets/icon.svg";
@@ -8,6 +8,15 @@ const appWindow = getCurrentWindow();
 
 function Titlebar() {
   const [maximized, setMaximized] = useState(false);
+
+  function handleDragMouseDown(e: MouseEvent<HTMLDivElement>) {
+    if (e.button !== 0) return;
+    if ((e.target as HTMLElement).closest(".titlebar__controls")) return;
+
+    appWindow.startDragging().catch(() => {
+      // Native drag regions still handle platforms where programmatic dragging is unavailable.
+    });
+  }
 
   useEffect(() => {
     appWindow.isMaximized().then(setMaximized);
@@ -22,7 +31,7 @@ function Titlebar() {
   }, []);
 
   return (
-    <div className="titlebar" data-tauri-drag-region>
+    <div className="titlebar" data-tauri-drag-region onMouseDown={handleDragMouseDown}>
       <div className="titlebar__left" data-tauri-drag-region>
         <img src={appIcon} alt="Moodcrate" className="titlebar__icon" draggable={false} />
         <span className="titlebar__title" data-tauri-drag-region>Moodcrate</span>

@@ -1,13 +1,15 @@
-use std::fs;
-use std::io::BufWriter;
-use std::path::{Path, PathBuf};
-use base64::{Engine as _, engine::general_purpose::STANDARD};
+use base64::{engine::general_purpose::STANDARD, Engine as _};
 use image::codecs::png::PngEncoder;
 use image::ImageEncoder;
-use sha2::{Sha256, Digest};
+use sha2::{Digest, Sha256};
+use std::fs;
+use std::io::{BufWriter, Cursor};
+use std::path::{Path, PathBuf};
 use tauri::Manager;
 
-const IMAGE_EXTENSIONS: &[&str] = &["png", "jpg", "jpeg", "gif", "bmp", "webp", "svg", "tiff", "tif", "avif"];
+const IMAGE_EXTENSIONS: &[&str] = &[
+    "png", "jpg", "jpeg", "gif", "bmp", "webp", "svg", "tiff", "tif", "avif",
+];
 
 fn mime_for_ext(ext: &str) -> &'static str {
     match ext {
@@ -64,7 +66,11 @@ fn read_image(path: &str) -> Result<String, String> {
 }
 
 #[tauri::command]
-fn import_files(sources: Vec<String>, target_dir: String, mode: String) -> Result<Vec<String>, String> {
+fn import_files(
+    sources: Vec<String>,
+    target_dir: String,
+    mode: String,
+) -> Result<Vec<String>, String> {
     let target = Path::new(&target_dir);
     if !target.is_dir() {
         return Err(format!("Target is not a directory: {}", target_dir));
@@ -87,7 +93,10 @@ fn import_files(sources: Vec<String>, target_dir: String, mode: String) -> Resul
 
         // Handle filename collisions
         if dest.exists() {
-            let stem = src_path.file_stem().and_then(|s| s.to_str()).unwrap_or("file");
+            let stem = src_path
+                .file_stem()
+                .and_then(|s| s.to_str())
+                .unwrap_or("file");
             let ext = src_path.extension().and_then(|e| e.to_str()).unwrap_or("");
             let mut counter = 1u32;
             loop {
@@ -106,9 +115,8 @@ fn import_files(sources: Vec<String>, target_dir: String, mode: String) -> Resul
 
         let result = if mode == "move" {
             // fs::rename fails across drives on Windows; fall back to copy + delete
-            fs::rename(src_path, &dest).or_else(|_| {
-                fs::copy(src_path, &dest).and_then(|_| fs::remove_file(src_path))
-            })
+            fs::rename(src_path, &dest)
+                .or_else(|_| fs::copy(src_path, &dest).and_then(|_| fs::remove_file(src_path)))
         } else {
             fs::copy(src_path, &dest).map(|_| ())
         };
@@ -129,7 +137,12 @@ fn import_files(sources: Vec<String>, target_dir: String, mode: String) -> Resul
 }
 
 #[tauri::command]
-fn save_clipboard_image(rgba_data: Vec<u8>, width: u32, height: u32, target_dir: String) -> Result<String, String> {
+fn save_clipboard_image(
+    rgba_data: Vec<u8>,
+    width: u32,
+    height: u32,
+    target_dir: String,
+) -> Result<String, String> {
     let target = Path::new(&target_dir);
     if !target.is_dir() {
         return Err(format!("Target is not a directory: {}", target_dir));
@@ -218,7 +231,10 @@ fn save_moodboards_data(app_handle: tauri::AppHandle, data: String) -> Result<()
 }
 
 fn thumbnail_cache_dir(app_handle: &tauri::AppHandle) -> Result<PathBuf, String> {
-    let data_dir = app_handle.path().app_data_dir().map_err(|e| e.to_string())?;
+    let data_dir = app_handle
+        .path()
+        .app_data_dir()
+        .map_err(|e| e.to_string())?;
     let thumb_dir = data_dir.join("thumbnails");
     if !thumb_dir.exists() {
         fs::create_dir_all(&thumb_dir).map_err(|e| e.to_string())?;
@@ -227,14 +243,22 @@ fn thumbnail_cache_dir(app_handle: &tauri::AppHandle) -> Result<PathBuf, String>
 }
 
 #[tauri::command]
-async fn generate_thumbnail(app_handle: tauri::AppHandle, path: String, max_size: u32) -> Result<String, String> {
+async fn generate_thumbnail(
+    app_handle: tauri::AppHandle,
+    path: String,
+    max_size: u32,
+) -> Result<String, String> {
     tauri::async_runtime::spawn_blocking(move || {
         let src = Path::new(&path);
         if !src.is_file() {
             return Err(format!("Not a file: {}", path));
         }
 
-        let ext = src.extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
+        let ext = src
+            .extension()
+            .and_then(|e| e.to_str())
+            .unwrap_or("")
+            .to_lowercase();
 
         // SVGs are already lightweight vector graphics â€” return original path
         if ext == "svg" {
@@ -244,7 +268,10 @@ async fn generate_thumbnail(app_handle: tauri::AppHandle, path: String, max_size
         // Build a cache key from path + modification time
         let metadata = fs::metadata(src).map_err(|e| e.to_string())?;
         let modified = metadata.modified().map_err(|e| e.to_string())?;
-        let mod_epoch = modified.duration_since(std::time::UNIX_EPOCH).map_err(|e| e.to_string())?.as_millis();
+        let mod_epoch = modified
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_err(|e| e.to_string())?
+            .as_millis();
 
         let mut hasher = Sha256::new();
         hasher.update(path.as_bytes());
@@ -253,11 +280,12 @@ async fn generate_thumbnail(app_handle: tauri::AppHandle, path: String, max_size
         let hash = format!("{:x}", hasher.finalize());
 
         let cache_dir = thumbnail_cache_dir(&app_handle)?;
-        let cached_path = cache_dir.join(format!("{}.webp", hash));
+        let cached_path = cache_dir.join(format!("{}.png", hash));
 
         // Return cached thumbnail path if it exists
         if cached_path.is_file() {
-            return cached_path.to_str()
+            return cached_path
+                .to_str()
                 .map(|s| s.to_string())
                 .ok_or_else(|| "Failed to convert path".to_string());
         }
@@ -272,11 +300,12 @@ async fn generate_thumbnail(app_handle: tauri::AppHandle, path: String, max_size
             img
         };
 
-        // Encode as WebP and save to cache
-        let webp_data = webp_encode(&thumb)?;
-        fs::write(&cached_path, &webp_data).map_err(|e| e.to_string())?;
+        // PNG is more broadly supported across desktop webviews than cached WebP thumbnails.
+        let png_data = png_encode(&thumb)?;
+        fs::write(&cached_path, &png_data).map_err(|e| e.to_string())?;
 
-        cached_path.to_str()
+        cached_path
+            .to_str()
             .map(|s| s.to_string())
             .ok_or_else(|| "Failed to convert path".to_string())
     })
@@ -292,7 +321,11 @@ fn clear_collection_cache(app_handle: tauri::AppHandle, path: &str) -> Result<u3
 
     for image_path in &image_paths {
         let src = Path::new(image_path);
-        let ext = src.extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
+        let ext = src
+            .extension()
+            .and_then(|e| e.to_str())
+            .unwrap_or("")
+            .to_lowercase();
         if ext == "svg" {
             continue;
         }
@@ -316,10 +349,12 @@ fn clear_collection_cache(app_handle: tauri::AppHandle, path: &str) -> Result<u3
             hasher.update(mod_epoch.to_le_bytes());
             hasher.update(max_size.to_le_bytes());
             let hash = format!("{:x}", hasher.finalize());
-            let cached_path = cache_dir.join(format!("{}.webp", hash));
-            if cached_path.is_file() {
-                let _ = fs::remove_file(&cached_path);
-                removed += 1;
+            for extension in ["png", "webp"] {
+                let cached_path = cache_dir.join(format!("{}.{}", hash, extension));
+                if cached_path.is_file() {
+                    let _ = fs::remove_file(&cached_path);
+                    removed += 1;
+                }
             }
         }
     }
@@ -327,11 +362,11 @@ fn clear_collection_cache(app_handle: tauri::AppHandle, path: &str) -> Result<u3
     Ok(removed)
 }
 
-fn webp_encode(img: &image::DynamicImage) -> Result<Vec<u8>, String> {
+fn png_encode(img: &image::DynamicImage) -> Result<Vec<u8>, String> {
     let mut buf = Vec::new();
-    let mut cursor = std::io::Cursor::new(&mut buf);
-    img.write_to(&mut cursor, image::ImageFormat::WebP)
-        .map_err(|e| format!("Failed to encode WebP: {}", e))?;
+    let mut cursor = Cursor::new(&mut buf);
+    img.write_to(&mut cursor, image::ImageFormat::Png)
+        .map_err(|e| format!("Failed to encode PNG: {}", e))?;
     Ok(buf)
 }
 
@@ -345,11 +380,24 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         .setup(|app| {
             #[cfg(desktop)]
-            app.handle().plugin(tauri_plugin_updater::Builder::new().build())?;
+            app.handle()
+                .plugin(tauri_plugin_updater::Builder::new().build())?;
 
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![list_images, read_image, import_files, save_clipboard_image, delete_image, generate_thumbnail, clear_collection_cache, load_tags_data, save_tags_data, load_moodboards_data, save_moodboards_data])
+        .invoke_handler(tauri::generate_handler![
+            list_images,
+            read_image,
+            import_files,
+            save_clipboard_image,
+            delete_image,
+            generate_thumbnail,
+            clear_collection_cache,
+            load_tags_data,
+            save_tags_data,
+            load_moodboards_data,
+            save_moodboards_data
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
