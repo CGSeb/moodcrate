@@ -1,97 +1,106 @@
 # Moodcrate
 
-A desktop app for artists to gather, label, categorize visual references and create moodboards from selected images.
+[![Coverage Status](https://coveralls.io/repos/github/CGSeb/moodcrate/badge.svg?branch=main)](https://coveralls.io/github/CGSeb/moodcrate?branch=main)
+[![Latest Version](https://img.shields.io/github/v/release/CGSeb/moodcrate?display_name=tag)](https://github.com/CGSeb/moodcrate/releases/latest)
 
-Built with **Tauri v2** (Rust) + **React 19** + **TypeScript** + **Vite**.
+Moodcrate is a desktop app for artists to gather, tag, organize, and arrange visual references into moodboards.
 
-![MoodCrate Home](img/HomePage.jpg)
+Built with **Tauri v2** (Rust), **React 19**, **TypeScript**, and **Vite**.
+
+![Moodcrate Home](img/HomePage.jpg)
 
 ## Features
 
 ### Collections
 
-Organize your visual references into collections — folders of images you can browse, tag, and filter.
+Organize references into collections you can browse, filter, and reuse.
 
-![MoodCrate Collection](img/Collection.jpg)
+![Moodcrate Collection](img/Collection.jpg)
 
-- **Import images** via file picker or clipboard paste (copy or reference modes)
-- **Grid view** with adjustable columns per row
-- **Thumbnail caching** — images are resized to WebP thumbnails on first load, cached on disk for instant subsequent loads
-- **Full-screen image viewer** at original resolution
-- **Clear cache** per collection from the settings popover
-- **Delete images** from collections
+- Import images from disk or the clipboard
+- Choose copy or move import behavior
+- Browse images in an adjustable grid
+- Cache thumbnails on disk for faster reloads
+- Open images in a full-screen viewer
+- Clear a collection thumbnail cache from settings
+- Delete images from a collection
 
 ### Tags
 
-A hierarchical tagging system to categorize and filter your images.
+Use a hierarchical tag system to label and filter references.
 
-- **Create tags** with parent-child nesting (unlimited depth)
-- **Drag-and-drop** tags in the sidebar to reorganize hierarchy
-- **Tag images** directly from the collection grid
-- **Filter by tag** — click the search icon on any tag to show only matching images (includes descendants)
+- Create nested tags with unlimited depth
+- Drag and drop tags to reorganize the tree
+- Tag images directly from the collection grid
+- Filter by a tag and all of its descendants
 
 ### Moodboards
 
-Free-form canvases to arrange your selected references spatially.
+Build free-form boards from selected references and text notes.
 
-![MoodCrate Mood Board](img/MoodBoard.jpg)
+![Moodcrate Mood Board](img/MoodBoard.jpg)
 
-- **Infinite canvas** with pan (middle-click) and zoom (scroll wheel)
-- **Add a single image** from any collection via the moodboard picker on each image tile — moodboards that already contain the image are indicated with a checkmark
-- **Batch-add multiple images** — select images with the checkboxes, then use the batch action bar to add them all to an existing or new moodboard at once; multiple images are placed in a grid layout on the canvas
-- **Create moodboards on the fly** — the "New moodboard" option in the picker creates a board, adds the image(s), and navigates to it
-- **Freely arrange** images by dragging them on the canvas
-- **Resize images** using the corner handle
-- **Box-select** multiple images with a marquee (left-click drag on empty canvas)
-- **Multi-drag** — move all selected images together
-- **Shift+click** to toggle individual image selection
-- **Zoom-to-fit** on open — the view automatically centers and scales to show all images
-- **Dot grid background** for visual reference
-- **Text labels** — add free-form text boxes anywhere on the canvas; supports Markdown rendering (headings, bold, italic, lists, code, blockquotes); double-click to edit with a formatting toolbar (font size, H1, H2, bullet list); resize freely; move and select alongside images
+- Pan with middle mouse and zoom with the wheel
+- Add a single image to an existing or new moodboard
+- Batch-add multiple selected images at once
+- Arrange images freely on the canvas
+- Resize images with drag handles
+- Box-select and multi-drag items together
+- Add text blocks with Markdown rendering
+- Edit text with font size, H1, H2, and bullet list controls
+- Auto-fit content when opening a populated moodboard
 
-### Home & Favorites
+### Home and Favorites
 
-- **Home page** with quick-create actions for collections and moodboards
-- **Favorite** any collection or moodboard via the star icon in the sidebar
-- **Favorites overview** on the home page for quick access to starred items
+- Start from a home page with quick-create actions
+- Favorite collections and moodboards from the sidebar
+- Reopen favorites quickly from the home screen
 
 ### Performance
 
-- **Asset protocol** — images loaded directly from disk by the webview, no base64/IPC overhead
-- **Async thumbnail generation** — caching runs in background threads, UI stays responsive
-- **Batched loading** — thumbnails load in batches of 20 with a progress indicator
-
-### Interface
-
-- **Settings popover** to adjust grid column count and clear thumbnail cache
-- **Dark theme** throughout
-- **NSIS uninstaller** cleans up app data and thumbnail cache on uninstall
+- Images load through the asset protocol directly from disk
+- Thumbnail generation runs asynchronously
+- Thumbnail loading is batched to keep the UI responsive
 
 ## Installation
 
 ### Prerequisites
 
 - [Rust](https://www.rust-lang.org/tools/install) 1.93+
-- [Node.js](https://nodejs.org/) 24+ with npm
+- [Node.js](https://nodejs.org/) 24+
 
 ### Development
 
 ```bash
-# Install dependencies
 npm install
-
-# Run in dev mode (hot reload)
 npm run tauri dev
 ```
 
-### Build
+### Production Build
 
 ```bash
-# Build production binary
 npm run tauri build
 ```
 
-The built installer will be in `src-tauri/target/release/bundle/`.
+The built installer is written to `src-tauri/target/release/bundle/`.
+
+## Testing
+
+Run the test suite locally:
+
+```bash
+npm test
+```
+
+Run coverage locally:
+
+```bash
+npm run test:coverage
+```
+
+GitHub Actions also runs:
+
+- `Coverage`: runs the Vitest suite, runs `cargo test`, generates frontend and Rust coverage, uploads the combined report to Coveralls, and stores the full `coverage/` report as a workflow artifact
 
 ## Tech Stack
 
@@ -103,8 +112,7 @@ The built installer will be in `src-tauri/target/release/bundle/`.
 | Icons | lucide-react |
 | Persistence | localStorage |
 | Markdown | marked |
-| Image processing | image crate (Rust) — decode, resize, WebP encode |
-| Tauri plugins | dialog, opener, clipboard-manager, window-state |
+| Tauri plugins | dialog, opener, clipboard-manager, process, updater, window-state |
 
 ## License
 

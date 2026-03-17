@@ -91,7 +91,6 @@ fn import_files(
 
         let mut dest = target.join(file_name);
 
-        // Handle filename collisions
         if dest.exists() {
             let stem = src_path
                 .file_stem()
@@ -114,7 +113,6 @@ fn import_files(
         }
 
         let result = if mode == "move" {
-            // fs::rename fails across drives on Windows; fall back to copy + delete
             fs::rename(src_path, &dest)
                 .or_else(|_| fs::copy(src_path, &dest).and_then(|_| fs::remove_file(src_path)))
         } else {
@@ -177,57 +175,85 @@ fn delete_image(path: String) -> Result<(), String> {
     fs::remove_file(file).map_err(|e| e.to_string())
 }
 
-fn moodcrate_data_dir(app_handle: &tauri::AppHandle) -> Result<PathBuf, String> {
-    let dir = app_handle
-        .path()
-        .document_dir()
-        .or_else(|_| app_handle.path().app_local_data_dir())
-        .map_err(|e| e.to_string())?;
-    let app_dir = dir.join("Moodcrate");
+fn moodcrate_data_dir_from_base(base_dir: &Path) -> Result<PathBuf, String> {
+    let app_dir = base_dir.join("Moodcrate");
     if !app_dir.exists() {
         fs::create_dir_all(&app_dir).map_err(|e| e.to_string())?;
     }
     Ok(app_dir)
 }
 
+fn moodcrate_data_dir(app_handle: &tauri::AppHandle) -> Result<PathBuf, String> {
+    let base_dir = app_handle
+        .path()
+        .document_dir()
+        .or_else(|_| app_handle.path().app_local_data_dir())
+        .map_err(|e| e.to_string())?;
+    moodcrate_data_dir_from_base(&base_dir)
+}
+
+fn tags_data_path_from_base(base_dir: &Path) -> PathBuf {
+    base_dir.join("tags.json")
+}
+
 fn tags_data_path(app_handle: &tauri::AppHandle) -> Result<PathBuf, String> {
-    Ok(moodcrate_data_dir(app_handle)?.join("tags.json"))
+    Ok(tags_data_path_from_base(&moodcrate_data_dir(app_handle)?))
+}
+
+fn moodboards_data_path_from_base(base_dir: &Path) -> PathBuf {
+    base_dir.join("moodboards.json")
 }
 
 fn moodboards_data_path(app_handle: &tauri::AppHandle) -> Result<PathBuf, String> {
-    Ok(moodcrate_data_dir(app_handle)?.join("moodboards.json"))
+    Ok(moodboards_data_path_from_base(&moodcrate_data_dir(app_handle)?))
+}
+
+fn load_data_file(path: &Path) -> Result<String, String> {
+    if path.is_file() {
+        fs::read_to_string(path).map_err(|e| e.to_string())
+    } else {
+        Ok(String::new())
+    }
+}
+
+fn save_data_file(path: &Path, data: &str) -> Result<(), String> {
+    fs::write(path, data).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 fn load_tags_data(app_handle: tauri::AppHandle) -> Result<String, String> {
-    let path = tags_data_path(&app_handle)?;
-    if path.is_file() {
-        fs::read_to_string(&path).map_err(|e| e.to_string())
-    } else {
-        Ok(String::new())
-    }
+    load_data_file(&tags_data_path(&app_handle)?)
 }
 
 #[tauri::command]
 fn save_tags_data(app_handle: tauri::AppHandle, data: String) -> Result<(), String> {
-    let path = tags_data_path(&app_handle)?;
-    fs::write(&path, data).map_err(|e| e.to_string())
+    save_data_file(&tags_data_path(&app_handle)?, &data)
 }
 
 #[tauri::command]
 fn load_moodboards_data(app_handle: tauri::AppHandle) -> Result<String, String> {
-    let path = moodboards_data_path(&app_handle)?;
-    if path.is_file() {
-        fs::read_to_string(&path).map_err(|e| e.to_string())
-    } else {
-        Ok(String::new())
-    }
+    load_data_file(&moodboards_data_path(&app_handle)?)
 }
 
 #[tauri::command]
 fn save_moodboards_data(app_handle: tauri::AppHandle, data: String) -> Result<(), String> {
-    let path = moodboards_data_path(&app_handle)?;
-    fs::write(&path, data).map_err(|e| e.to_string())
+    save_data_file(&moodboards_data_path(&app_handle)?, &data)
+}
+
+fn thumbnail_cache_dir_from_base(base_dir: &Path) -> Result<PathBuf, String> {
+    let thumb_dir = base_dir.join("thumbnails");
+    if !thumb_dir.exists() {
+        fs::create_dir_all(&thumb_dir).map_err(|e| e.to_string())?;
+    }
+    Ok(thumb_dir)
+}
+
+fn thumbnail_cache_key(path: &str, mod_epoch: u128, max_size: u32) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(path.as_bytes());
+    hasher.update(mod_epoch.to_le_bytes());
+    hasher.update(max_size.to_le_bytes());
+    format!("{:x}", hasher.finalize())
 }
 
 fn thumbnail_cache_dir(app_handle: &tauri::AppHandle) -> Result<PathBuf, String> {
@@ -235,88 +261,60 @@ fn thumbnail_cache_dir(app_handle: &tauri::AppHandle) -> Result<PathBuf, String>
         .path()
         .app_data_dir()
         .map_err(|e| e.to_string())?;
-    let thumb_dir = data_dir.join("thumbnails");
-    if !thumb_dir.exists() {
-        fs::create_dir_all(&thumb_dir).map_err(|e| e.to_string())?;
-    }
-    Ok(thumb_dir)
+    thumbnail_cache_dir_from_base(&data_dir)
 }
 
-#[tauri::command]
-async fn generate_thumbnail(
-    app_handle: tauri::AppHandle,
-    path: String,
-    max_size: u32,
-) -> Result<String, String> {
-    tauri::async_runtime::spawn_blocking(move || {
-        let src = Path::new(&path);
-        if !src.is_file() {
-            return Err(format!("Not a file: {}", path));
-        }
+fn generate_thumbnail_to_cache(cache_dir: &Path, path: &str, max_size: u32) -> Result<String, String> {
+    let src = Path::new(path);
+    if !src.is_file() {
+        return Err(format!("Not a file: {}", path));
+    }
 
-        let ext = src
-            .extension()
-            .and_then(|e| e.to_str())
-            .unwrap_or("")
-            .to_lowercase();
+    let ext = src
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("")
+        .to_lowercase();
 
-        // SVGs are already lightweight vector graphics â€” return original path
-        if ext == "svg" {
-            return Ok(path);
-        }
+    if ext == "svg" {
+        return Ok(path.to_string());
+    }
 
-        // Build a cache key from path + modification time
-        let metadata = fs::metadata(src).map_err(|e| e.to_string())?;
-        let modified = metadata.modified().map_err(|e| e.to_string())?;
-        let mod_epoch = modified
-            .duration_since(std::time::UNIX_EPOCH)
-            .map_err(|e| e.to_string())?
-            .as_millis();
+    let metadata = fs::metadata(src).map_err(|e| e.to_string())?;
+    let modified = metadata.modified().map_err(|e| e.to_string())?;
+    let mod_epoch = modified
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_err(|e| e.to_string())?
+        .as_millis();
 
-        let mut hasher = Sha256::new();
-        hasher.update(path.as_bytes());
-        hasher.update(mod_epoch.to_le_bytes());
-        hasher.update(max_size.to_le_bytes());
-        let hash = format!("{:x}", hasher.finalize());
+    let hash = thumbnail_cache_key(path, mod_epoch, max_size);
+    let cached_path = cache_dir.join(format!("{}.png", hash));
 
-        let cache_dir = thumbnail_cache_dir(&app_handle)?;
-        let cached_path = cache_dir.join(format!("{}.png", hash));
-
-        // Return cached thumbnail path if it exists
-        if cached_path.is_file() {
-            return cached_path
-                .to_str()
-                .map(|s| s.to_string())
-                .ok_or_else(|| "Failed to convert path".to_string());
-        }
-
-        // Decode the source image
-        let img = image::open(src).map_err(|e| format!("Failed to decode image: {}", e))?;
-
-        // Resize preserving aspect ratio (only downscale, never upscale)
-        let thumb = if img.width() > max_size || img.height() > max_size {
-            img.thumbnail(max_size, max_size)
-        } else {
-            img
-        };
-
-        // PNG is more broadly supported across desktop webviews than cached WebP thumbnails.
-        let png_data = png_encode(&thumb)?;
-        fs::write(&cached_path, &png_data).map_err(|e| e.to_string())?;
-
-        cached_path
+    if cached_path.is_file() {
+        return cached_path
             .to_str()
             .map(|s| s.to_string())
-            .ok_or_else(|| "Failed to convert path".to_string())
-    })
-    .await
-    .map_err(|e| e.to_string())?
+            .ok_or_else(|| "Failed to convert path".to_string());
+    }
+
+    let img = image::open(src).map_err(|e| format!("Failed to decode image: {}", e))?;
+    let thumb = if img.width() > max_size || img.height() > max_size {
+        img.thumbnail(max_size, max_size)
+    } else {
+        img
+    };
+
+    let png_data = png_encode(&thumb)?;
+    fs::write(&cached_path, &png_data).map_err(|e| e.to_string())?;
+
+    cached_path
+        .to_str()
+        .map(|s| s.to_string())
+        .ok_or_else(|| "Failed to convert path".to_string())
 }
 
-#[tauri::command]
-fn clear_collection_cache(app_handle: tauri::AppHandle, path: &str) -> Result<u32, String> {
+fn clear_collection_cache_in_dir(cache_dir: &Path, path: &str) -> Result<u32, String> {
     let image_paths = list_images(path)?;
-    let cache_dir = thumbnail_cache_dir(&app_handle)?;
     let mut removed = 0u32;
 
     for image_path in &image_paths {
@@ -342,13 +340,8 @@ fn clear_collection_cache(app_handle: tauri::AppHandle, path: &str) -> Result<u3
             Err(_) => continue,
         };
 
-        // Remove thumbnails for all possible max_size values
         for &max_size in &[400u32] {
-            let mut hasher = Sha256::new();
-            hasher.update(image_path.as_bytes());
-            hasher.update(mod_epoch.to_le_bytes());
-            hasher.update(max_size.to_le_bytes());
-            let hash = format!("{:x}", hasher.finalize());
+            let hash = thumbnail_cache_key(image_path, mod_epoch, max_size);
             for extension in ["png", "webp"] {
                 let cached_path = cache_dir.join(format!("{}.{}", hash, extension));
                 if cached_path.is_file() {
@@ -360,6 +353,26 @@ fn clear_collection_cache(app_handle: tauri::AppHandle, path: &str) -> Result<u3
     }
 
     Ok(removed)
+}
+
+#[tauri::command]
+async fn generate_thumbnail(
+    app_handle: tauri::AppHandle,
+    path: String,
+    max_size: u32,
+) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let cache_dir = thumbnail_cache_dir(&app_handle)?;
+        generate_thumbnail_to_cache(&cache_dir, &path, max_size)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+fn clear_collection_cache(app_handle: tauri::AppHandle, path: &str) -> Result<u32, String> {
+    let cache_dir = thumbnail_cache_dir(&app_handle)?;
+    clear_collection_cache_in_dir(&cache_dir, path)
 }
 
 fn png_encode(img: &image::DynamicImage) -> Result<Vec<u8>, String> {
@@ -401,3 +414,6 @@ pub fn run() {
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
+
+#[cfg(test)]
+mod lib_tests;
