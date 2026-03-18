@@ -296,6 +296,19 @@ describe("CollectionView", () => {
     expect(screen.getByTestId("image-viewer")).toHaveTextContent("asset://D:/refs/alpha.png");
   });
 
+  it("closes the image viewer when the overlay is clicked", async () => {
+    const { container } = renderCollectionView();
+
+    await waitFor(() => {
+      expect(screen.getByText("(3)")).toBeInTheDocument();
+    });
+
+    fireEvent.click(container.querySelector(".collection-view__tile") as Element);
+    fireEvent.click(screen.getByTestId("image-viewer"));
+
+    expect(screen.queryByTestId("image-viewer")).not.toBeInTheDocument();
+  });
+
   it("adds a single image to an existing moodboard from the picker", async () => {
     const { container, onAddImageToMoodboard } = renderCollectionView();
 
@@ -663,5 +676,131 @@ describe("CollectionView", () => {
 
     expect((slider as HTMLInputElement).value).toBe("4");
     expect(localStorage.getItem("columnsPerRow")).toBe("4");
+  });
+
+  it("handles clipboard paste failures without trying to save an image", async () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    readImageMock.mockRejectedValueOnce(new Error("clipboard unavailable"));
+
+    renderCollectionView();
+
+    await waitFor(() => {
+      expect(screen.getByText("(3)")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Paste image from clipboard" }));
+
+    await waitFor(() => {
+      expect(errorSpy).toHaveBeenCalledWith("Clipboard paste failed:", expect.any(Error));
+    });
+
+    expect(invokeMock).not.toHaveBeenCalledWith("save_clipboard_image", expect.anything());
+
+    errorSpy.mockRestore();
+  });
+
+  it("falls back to an empty state when loading images fails", async () => {
+    invokeMock.mockImplementation((command: string) => {
+      if (command === "list_images") {
+        return Promise.reject(new Error("boom"));
+      }
+
+      return Promise.resolve("");
+    });
+
+    const { container } = renderCollectionView();
+
+    await waitFor(() => {
+      expect(screen.getByText("(0)")).toBeInTheDocument();
+    });
+
+    expect(container.querySelectorAll(".collection-view__tile")).toHaveLength(0);
+  });
+
+  it("shows the thumbnail loading indicator while thumbnails are still being generated", async () => {
+    invokeMock.mockImplementation((command: string, args?: Record<string, unknown>) => {
+      switch (command) {
+        case "list_images":
+          return Promise.resolve(imagePaths);
+        case "generate_thumbnail":
+          return new Promise((resolve) => {
+            void args;
+            void resolve;
+          });
+        case "clear_collection_cache":
+        case "delete_image":
+        case "import_files":
+        case "save_clipboard_image":
+          return Promise.resolve("");
+        default:
+          return Promise.resolve("");
+      }
+    });
+
+    renderCollectionView();
+
+    expect(await screen.findByText("Caching thumbnails... 0/3")).toBeInTheDocument();
+  });
+
+  it("keeps drag-over styling while moving within the same image tile", async () => {
+    const { container } = renderCollectionView();
+    const dataTransfer = {
+      types: ["application/tag-id"],
+      getData: vi.fn(),
+      setData: vi.fn(),
+      dropEffect: "copy",
+    };
+
+    await waitFor(() => {
+      expect(screen.getByText("(3)")).toBeInTheDocument();
+    });
+
+    const tile = container.querySelector(".collection-view__tile") as HTMLElement;
+    const image = tile.querySelector(".collection-view__img") as HTMLElement;
+
+    fireEvent.dragOver(tile, { dataTransfer });
+    expect(tile).toHaveClass("collection-view__tile--drag-over");
+
+    const innerLeave = new MouseEvent("dragleave", { bubbles: true });
+    Object.defineProperty(innerLeave, "relatedTarget", { value: image });
+    fireEvent(tile, innerLeave);
+    expect(tile).toHaveClass("collection-view__tile--drag-over");
+
+    const outerLeave = new MouseEvent("dragleave", { bubbles: true });
+    Object.defineProperty(outerLeave, "relatedTarget", { value: document.body });
+    fireEvent(tile, outerLeave);
+    expect(tile).not.toHaveClass("collection-view__tile--drag-over");
+  });
+
+  it("closes the image delete dialog after a failed delete attempt", async () => {
+    invokeMock.mockImplementation((command: string, args?: Record<string, unknown>) => {
+      switch (command) {
+        case "list_images":
+          return Promise.resolve(imagePaths);
+        case "generate_thumbnail":
+          return Promise.resolve(`${String(args?.path)}.webp`);
+        case "delete_image":
+          return Promise.reject(new Error("nope"));
+        case "clear_collection_cache":
+        case "import_files":
+        case "save_clipboard_image":
+          return Promise.resolve("");
+        default:
+          return Promise.resolve("");
+      }
+    });
+
+    const { container } = renderCollectionView();
+
+    await waitFor(() => {
+      expect(screen.getByText("(3)")).toBeInTheDocument();
+    });
+
+    fireEvent.click(container.querySelectorAll(".collection-view__tile-action-btn")[1]);
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+
+    await waitFor(() => {
+      expect(screen.queryByText("Delete Image")).not.toBeInTheDocument();
+    });
   });
 });

@@ -16,10 +16,12 @@ function renderMoodboardView({
     { id: "txt-1", text: "Notes", x: 120, y: 140, width: 200, height: 80, fontSize: 14 },
   ] satisfies MoodboardText[],
   initialSelectedIds = ["img-1"],
+  includeOnConsumeSelection = true,
 }: {
   initialImages?: MoodboardImage[];
   initialTexts?: MoodboardText[];
   initialSelectedIds?: string[];
+  includeOnConsumeSelection?: boolean;
 } = {}) {
   const onDelete = vi.fn();
   const onRemoveImage = vi.fn();
@@ -61,7 +63,7 @@ function renderMoodboardView({
           )));
         }}
         initialSelectedIds={initialSelectedIds}
-        onConsumeSelection={onConsumeSelection}
+        {...(includeOnConsumeSelection ? { onConsumeSelection } : {})}
       />
     );
   }
@@ -428,6 +430,19 @@ describe("MoodboardView", () => {
     expect(screen.getByTitle("Heading 2")).toHaveClass("moodboard-view__text-font-btn--active");
   });
 
+  it("applies a heading 2 prefix from the toolbar", () => {
+    const { onUpdateText } = renderMoodboardView();
+
+    fireEvent.doubleClick(screen.getByText("Notes"));
+
+    const heading2Button = screen.getByTitle("Heading 2");
+    fireEvent.mouseDown(heading2Button);
+    fireEvent.click(heading2Button);
+
+    expect(onUpdateText).toHaveBeenCalledWith("txt-1", { text: "## Notes" });
+    expect(screen.getByRole("textbox")).toHaveValue("## Notes");
+  });
+
   it("updates text size downward and removes text from the toolbar button", () => {
     const { onUpdateText, onRemoveText } = renderMoodboardView();
 
@@ -439,5 +454,73 @@ describe("MoodboardView", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Remove text" }));
     expect(onRemoveText).toHaveBeenCalledWith("txt-1");
+  });
+
+  it("supports editing without a selection consumer and keeps non-empty text on blur", () => {
+    const { onRemoveText } = renderMoodboardView({
+      initialSelectedIds: [],
+      includeOnConsumeSelection: false,
+    });
+
+    fireEvent.doubleClick(screen.getByText("Notes"));
+    fireEvent.blur(screen.getByRole("textbox"));
+
+    expect(onRemoveText).not.toHaveBeenCalled();
+    expect(screen.getByText("Notes")).toBeInTheDocument();
+  });
+
+  it("updates the active bullet control when the cursor moves within a prefixed line", () => {
+    renderMoodboardView({
+      initialTexts: [
+        { id: "txt-1", text: "- Notes", x: 120, y: 140, width: 200, height: 80, fontSize: 14 },
+      ],
+    });
+
+    fireEvent.doubleClick(screen.getByText("Notes"));
+
+    const textarea = screen.getByRole("textbox") as HTMLTextAreaElement;
+    textarea.setSelectionRange(0, 0);
+    fireEvent.keyUp(textarea, { key: "ArrowLeft" });
+
+    expect(screen.getByTitle("Bullet list")).toHaveClass("moodboard-view__text-font-btn--active");
+  });
+
+  it("updates text from textarea input and refreshes active prefixes from selection", () => {
+    const { onUpdateText } = renderMoodboardView({
+      initialTexts: [
+        { id: "txt-1", text: "# Notes", x: 120, y: 140, width: 200, height: 80, fontSize: 14 },
+      ],
+    });
+
+    fireEvent.doubleClick(screen.getByText("Notes"));
+
+    const textarea = screen.getByRole("textbox") as HTMLTextAreaElement;
+    fireEvent.change(textarea, { target: { value: "# Updated" } });
+
+    expect(onUpdateText).toHaveBeenCalledWith("txt-1", { text: "# Updated" });
+    expect(textarea).toHaveValue("# Updated");
+
+    textarea.setSelectionRange(0, 0);
+    fireEvent.select(textarea);
+
+    expect(screen.getByTitle("Heading 1")).toHaveClass("moodboard-view__text-font-btn--active");
+  });
+
+  it("keeps editor pointer interactions inside the textarea", () => {
+    renderMoodboardView();
+
+    fireEvent.doubleClick(screen.getByText("Notes"));
+
+    const textarea = screen.getByRole("textbox") as HTMLTextAreaElement;
+    const bulletButton = screen.getByTitle("Bullet list");
+
+    fireEvent.mouseDown(bulletButton);
+    fireEvent.mouseDown(textarea, { button: 0, clientX: 150, clientY: 160 });
+    fireEvent.click(textarea);
+    textarea.setSelectionRange(0, 0);
+    fireEvent(textarea, new Event("select", { bubbles: true }));
+
+    expect(screen.getByRole("textbox")).toBeInTheDocument();
+    expect(screen.getByText("14px")).toBeInTheDocument();
   });
 });
