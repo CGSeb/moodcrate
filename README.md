@@ -1,6 +1,6 @@
 # Moodcrate
 
-[![Coverage Status](https://coveralls.io/repos/github/CGSeb/moodcrate/badge.svg?branch=main)](https://coveralls.io/github/CGSeb/moodcrate?branch=main)
+[![Coverage Status](https://coveralls.io/repos/github/CGSeb/moodcrate/badge.svg?branch=main&id=0)](https://coveralls.io/github/CGSeb/moodcrate?branch=main)
 [![Latest Version](https://img.shields.io/github/v/release/CGSeb/moodcrate?display_name=tag)](https://github.com/CGSeb/moodcrate/releases/latest)
 
 Moodcrate is a desktop app for artists to gather, tag, organize, and arrange visual references into moodboards.
