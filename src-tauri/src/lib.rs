@@ -1,11 +1,16 @@
 use base64::{engine::general_purpose::STANDARD, Engine as _};
 use image::codecs::png::PngEncoder;
 use image::ImageEncoder;
-use sha2::{Digest, Sha256};
 use std::fs;
 use std::io::{BufWriter, Cursor};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use tauri::Manager;
+
+mod storage;
+mod thumbnails;
+
+use storage::{load_named_data, save_named_data};
+use thumbnails::{clear_collection_cache_from_app_data, generate_thumbnail_from_app_data};
 
 const IMAGE_EXTENSIONS: &[&str] = &[
     "png", "jpg", "jpeg", "gif", "bmp", "webp", "svg", "tiff", "tif", "avif",
@@ -22,6 +27,22 @@ fn mime_for_ext(ext: &str) -> &'static str {
         "tiff" | "tif" => "image/tiff",
         "avif" => "image/avif",
         _ => "application/octet-stream",
+    }
+}
+
+fn import_result_to_paths(
+    imported: &mut Vec<String>,
+    source: &str,
+    dest: &Path,
+    result: std::io::Result<()>,
+) {
+    match result {
+        Ok(()) => {
+            if let Some(path) = dest.to_str() {
+                imported.push(path.to_string());
+            }
+        }
+        Err(error) => eprintln!("Failed to import {}: {}", source, error),
     }
 }
 
@@ -84,11 +105,7 @@ fn import_files(
             continue;
         }
 
-        let file_name = match src_path.file_name() {
-            Some(name) => name,
-            None => continue,
-        };
-
+        let Some(file_name) = src_path.file_name() else { continue };
         let mut dest = target.join(file_name);
 
         if dest.exists() {
@@ -119,16 +136,7 @@ fn import_files(
             fs::copy(src_path, &dest).map(|_| ())
         };
 
-        match result {
-            Ok(_) => {
-                if let Some(p) = dest.to_str() {
-                    imported.push(p.to_string());
-                }
-            }
-            Err(e) => {
-                eprintln!("Failed to import {}: {}", source, e);
-            }
-        }
+        import_result_to_paths(&mut imported, source, &dest, result);
     }
 
     Ok(imported)
@@ -175,205 +183,23 @@ fn delete_image(path: String) -> Result<(), String> {
     fs::remove_file(file).map_err(|e| e.to_string())
 }
 
-fn moodcrate_data_dir_from_base(base_dir: &Path) -> Result<PathBuf, String> {
-    let app_dir = base_dir.join("Moodcrate");
-    if !app_dir.exists() {
-        fs::create_dir_all(&app_dir).map_err(|e| e.to_string())?;
-    }
-    Ok(app_dir)
-}
-
-fn moodcrate_data_dir(app_handle: &tauri::AppHandle) -> Result<PathBuf, String> {
-    let base_dir = app_handle
-        .path()
-        .document_dir()
-        .or_else(|_| app_handle.path().app_local_data_dir())
-        .map_err(|e| e.to_string())?;
-    moodcrate_data_dir_from_base(&base_dir)
-}
-
-fn tags_data_path_from_base(base_dir: &Path) -> PathBuf {
-    base_dir.join("tags.json")
-}
-
-fn tags_data_path(app_handle: &tauri::AppHandle) -> Result<PathBuf, String> {
-    Ok(tags_data_path_from_base(&moodcrate_data_dir(app_handle)?))
-}
-
-fn moodboards_data_path_from_base(base_dir: &Path) -> PathBuf {
-    base_dir.join("moodboards.json")
-}
-
-fn moodboards_data_path(app_handle: &tauri::AppHandle) -> Result<PathBuf, String> {
-    Ok(moodboards_data_path_from_base(&moodcrate_data_dir(app_handle)?))
-}
-
-fn load_data_file(path: &Path) -> Result<String, String> {
-    if path.is_file() {
-        fs::read_to_string(path).map_err(|e| e.to_string())
-    } else {
-        Ok(String::new())
-    }
-}
-
-fn save_data_file(path: &Path, data: &str) -> Result<(), String> {
-    fs::write(path, data).map_err(|e| e.to_string())
-}
+#[tauri::command]
+fn load_tags_data(app_handle: tauri::AppHandle) -> Result<String, String> { load_named_data(app_handle.path().document_dir().map_err(|e| e.to_string()), app_handle.path().app_local_data_dir().map_err(|e| e.to_string()), "tags.json") }
 
 #[tauri::command]
-fn load_tags_data(app_handle: tauri::AppHandle) -> Result<String, String> {
-    load_data_file(&tags_data_path(&app_handle)?)
-}
+fn save_tags_data(app_handle: tauri::AppHandle, data: String) -> Result<(), String> { save_named_data(app_handle.path().document_dir().map_err(|e| e.to_string()), app_handle.path().app_local_data_dir().map_err(|e| e.to_string()), "tags.json", &data) }
 
 #[tauri::command]
-fn save_tags_data(app_handle: tauri::AppHandle, data: String) -> Result<(), String> {
-    save_data_file(&tags_data_path(&app_handle)?, &data)
-}
+fn load_moodboards_data(app_handle: tauri::AppHandle) -> Result<String, String> { load_named_data(app_handle.path().document_dir().map_err(|e| e.to_string()), app_handle.path().app_local_data_dir().map_err(|e| e.to_string()), "moodboards.json") }
 
 #[tauri::command]
-fn load_moodboards_data(app_handle: tauri::AppHandle) -> Result<String, String> {
-    load_data_file(&moodboards_data_path(&app_handle)?)
-}
+fn save_moodboards_data(app_handle: tauri::AppHandle, data: String) -> Result<(), String> { save_named_data(app_handle.path().document_dir().map_err(|e| e.to_string()), app_handle.path().app_local_data_dir().map_err(|e| e.to_string()), "moodboards.json", &data) }
 
 #[tauri::command]
-fn save_moodboards_data(app_handle: tauri::AppHandle, data: String) -> Result<(), String> {
-    save_data_file(&moodboards_data_path(&app_handle)?, &data)
-}
-
-fn thumbnail_cache_dir_from_base(base_dir: &Path) -> Result<PathBuf, String> {
-    let thumb_dir = base_dir.join("thumbnails");
-    if !thumb_dir.exists() {
-        fs::create_dir_all(&thumb_dir).map_err(|e| e.to_string())?;
-    }
-    Ok(thumb_dir)
-}
-
-fn thumbnail_cache_key(path: &str, mod_epoch: u128, max_size: u32) -> String {
-    let mut hasher = Sha256::new();
-    hasher.update(path.as_bytes());
-    hasher.update(mod_epoch.to_le_bytes());
-    hasher.update(max_size.to_le_bytes());
-    format!("{:x}", hasher.finalize())
-}
-
-fn thumbnail_cache_dir(app_handle: &tauri::AppHandle) -> Result<PathBuf, String> {
-    let data_dir = app_handle
-        .path()
-        .app_data_dir()
-        .map_err(|e| e.to_string())?;
-    thumbnail_cache_dir_from_base(&data_dir)
-}
-
-fn generate_thumbnail_to_cache(cache_dir: &Path, path: &str, max_size: u32) -> Result<String, String> {
-    let src = Path::new(path);
-    if !src.is_file() {
-        return Err(format!("Not a file: {}", path));
-    }
-
-    let ext = src
-        .extension()
-        .and_then(|e| e.to_str())
-        .unwrap_or("")
-        .to_lowercase();
-
-    if ext == "svg" {
-        return Ok(path.to_string());
-    }
-
-    let metadata = fs::metadata(src).map_err(|e| e.to_string())?;
-    let modified = metadata.modified().map_err(|e| e.to_string())?;
-    let mod_epoch = modified
-        .duration_since(std::time::UNIX_EPOCH)
-        .map_err(|e| e.to_string())?
-        .as_millis();
-
-    let hash = thumbnail_cache_key(path, mod_epoch, max_size);
-    let cached_path = cache_dir.join(format!("{}.png", hash));
-
-    if cached_path.is_file() {
-        return cached_path
-            .to_str()
-            .map(|s| s.to_string())
-            .ok_or_else(|| "Failed to convert path".to_string());
-    }
-
-    let img = image::open(src).map_err(|e| format!("Failed to decode image: {}", e))?;
-    let thumb = if img.width() > max_size || img.height() > max_size {
-        img.thumbnail(max_size, max_size)
-    } else {
-        img
-    };
-
-    let png_data = png_encode(&thumb)?;
-    fs::write(&cached_path, &png_data).map_err(|e| e.to_string())?;
-
-    cached_path
-        .to_str()
-        .map(|s| s.to_string())
-        .ok_or_else(|| "Failed to convert path".to_string())
-}
-
-fn clear_collection_cache_in_dir(cache_dir: &Path, path: &str) -> Result<u32, String> {
-    let image_paths = list_images(path)?;
-    let mut removed = 0u32;
-
-    for image_path in &image_paths {
-        let src = Path::new(image_path);
-        let ext = src
-            .extension()
-            .and_then(|e| e.to_str())
-            .unwrap_or("")
-            .to_lowercase();
-        if ext == "svg" {
-            continue;
-        }
-        let metadata = match fs::metadata(src) {
-            Ok(m) => m,
-            Err(_) => continue,
-        };
-        let modified = match metadata.modified() {
-            Ok(m) => m,
-            Err(_) => continue,
-        };
-        let mod_epoch = match modified.duration_since(std::time::UNIX_EPOCH) {
-            Ok(d) => d.as_millis(),
-            Err(_) => continue,
-        };
-
-        for &max_size in &[400u32] {
-            let hash = thumbnail_cache_key(image_path, mod_epoch, max_size);
-            for extension in ["png", "webp"] {
-                let cached_path = cache_dir.join(format!("{}.{}", hash, extension));
-                if cached_path.is_file() {
-                    let _ = fs::remove_file(&cached_path);
-                    removed += 1;
-                }
-            }
-        }
-    }
-
-    Ok(removed)
-}
+async fn generate_thumbnail(app_handle: tauri::AppHandle, path: String, max_size: u32) -> Result<String, String> { let app_data_dir = app_handle.path().app_data_dir().map_err(|e| e.to_string()); tauri::async_runtime::spawn_blocking(move || generate_thumbnail_from_app_data(app_data_dir, path, max_size)).await.map_err(|e| e.to_string())? }
 
 #[tauri::command]
-async fn generate_thumbnail(
-    app_handle: tauri::AppHandle,
-    path: String,
-    max_size: u32,
-) -> Result<String, String> {
-    tauri::async_runtime::spawn_blocking(move || {
-        let cache_dir = thumbnail_cache_dir(&app_handle)?;
-        generate_thumbnail_to_cache(&cache_dir, &path, max_size)
-    })
-    .await
-    .map_err(|e| e.to_string())?
-}
-
-#[tauri::command]
-fn clear_collection_cache(app_handle: tauri::AppHandle, path: &str) -> Result<u32, String> {
-    let cache_dir = thumbnail_cache_dir(&app_handle)?;
-    clear_collection_cache_in_dir(&cache_dir, path)
-}
+fn clear_collection_cache(app_handle: tauri::AppHandle, path: &str) -> Result<u32, String> { clear_collection_cache_from_app_data(app_handle.path().app_data_dir().map_err(|e| e.to_string()), path) }
 
 fn png_encode(img: &image::DynamicImage) -> Result<Vec<u8>, String> {
     let mut buf = Vec::new();

@@ -270,4 +270,22 @@ describe("Sidebar", () => {
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
     expect(screen.queryByText("New Moodboard")).not.toBeInTheDocument();
   });
+
+  it("selects collapsed flyout items and falls back to an empty unknown update label", () => {
+    render(
+      <Sidebar
+        {...baseProps}
+        updateState={{ ...baseProps.updateState, status: "mystery" as never }}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Collapse sidebar" }));
+    fireEvent.click(screen.getByText("Refs"));
+    fireEvent.click(screen.getByText("Board One"));
+    fireEvent.click(screen.getByRole("button", { name: "" }));
+
+    expect(baseProps.onSelectCollection).toHaveBeenCalledWith({ name: "Refs", path: "D:/refs" });
+    expect(baseProps.onSelectMoodboard).toHaveBeenCalledWith({ id: "mb-1", name: "Board One" });
+    expect(baseProps.onCheckForUpdates).toHaveBeenCalledTimes(1);
+  });
 });

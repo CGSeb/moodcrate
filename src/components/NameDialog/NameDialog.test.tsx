@@ -44,4 +44,36 @@ describe("NameDialog", () => {
     expect(screen.getByText("Name already used")).toBeInTheDocument();
     expect(onConfirm).not.toHaveBeenCalled();
   });
+
+  it("ignores blank names and clears validation errors when typing again", () => {
+    const onConfirm = vi.fn();
+
+    render(
+      <NameDialog
+        open
+        title="New Tag"
+        validate={() => "Name already used"}
+        onConfirm={onConfirm}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    fireEvent.change(screen.getByRole("textbox"), {
+      target: { value: "Duplicate" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Create" }));
+    expect(screen.getByText("Name already used")).toBeInTheDocument();
+
+    fireEvent.change(screen.getByRole("textbox"), {
+      target: { value: "Fixed" },
+    });
+    expect(screen.queryByText("Name already used")).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByRole("textbox"), {
+      target: { value: "   " },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Create" }));
+
+    expect(onConfirm).not.toHaveBeenCalled();
+  });
 });

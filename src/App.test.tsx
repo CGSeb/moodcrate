@@ -107,6 +107,12 @@ vi.mock("./components/CollectionView/CollectionView", () => ({
       >
         batch add to missing moodboard
       </button>
+      <button
+        onClick={() => props.moodboards[0] && props.onAddImagesToMoodboard(props.moodboards[0].id, ["D:/refs/a.png", "D:/refs/b.png"])}
+        type="button"
+      >
+        batch add to first moodboard
+      </button>
       <button onClick={() => props.onAddTag("Character")} type="button">add tag</button>
       <button onClick={() => props.onAddTag("character")} type="button">add duplicate tag</button>
       <button
@@ -384,6 +390,19 @@ describe("App", () => {
 
     expect(screen.getByTestId("collection-view")).toBeInTheDocument();
     expect(screen.queryByTestId("moodboard-view")).not.toBeInTheDocument();
+  });
+
+  it("selects an existing moodboard after batch-adding images to it", () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole("button", { name: "create moodboard" }));
+    fireEvent.click(screen.getByRole("button", { name: "sidebar home" }));
+    fireEvent.click(screen.getByRole("button", { name: "create collection" }));
+    fireEvent.click(screen.getByRole("button", { name: "batch add to first moodboard" }));
+
+    expect(screen.getByTestId("moodboard-view")).toBeInTheDocument();
+    expect(screen.getByText("Moodboard Alpha")).toBeInTheDocument();
+    expect(screen.getByTestId("moodboard-image-count")).toHaveTextContent("2");
   });
 
   it("manages tag creation, duplicate prevention, and image tag assignment", () => {
